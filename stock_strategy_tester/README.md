@@ -1,5 +1,6 @@
 This project is a stock strategy tester that allows users to backtest various trading strategies using historical stock data. It includes implementations of common strategies like Moving Average, Momentum, and Mean Reversion. The backtesting engine calculates performance metrics to help evaluate the effectiveness of each strategy.
 
+```bash
 stock_strategy_tester/
 ├── data/
 │   ├── historical_data.csv  # Example dataset for stock prices (optional placeholder)
@@ -26,3 +27,4 @@ stock_strategy_tester/
 ├── requirements.txt         # List of Python dependencies
 ├── main.py                  # Entry point to run the backtesting engine
 └── config.py                # Configuration file for project settings
+```

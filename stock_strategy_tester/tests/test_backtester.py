@@ -1,6 +1,6 @@
 import unittest
 import pandas as pd
-from stock_strategy_tester.backtester.backtester import Backtester
+from backtester.backtester import Backtester
 
 
 class TestBacktester(unittest.TestCase):
