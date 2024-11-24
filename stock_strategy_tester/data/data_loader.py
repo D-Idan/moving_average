@@ -26,6 +26,9 @@ def preprocess_data(data):
     :param data: DataFrame containing raw stock market data.
     :return: DataFrame with necessary columns and processed values.
     """
+    # Drop multi-level columns
+    data = data.droplevel('Ticker', axis=1)
+
     # Keep only relevant columns
     processed_data = data[["Open", "High", "Low", "Close", "Volume"]].copy()
 
@@ -34,6 +37,9 @@ def preprocess_data(data):
 
     # Reset index for easier manipulation
     processed_data.reset_index(inplace=True)
+
+    # Ensure the Date column is in datetime format
+    processed_data['Date'] = pd.to_datetime(processed_data['Date'])
 
     print("Data preprocessing complete.")
     return processed_data

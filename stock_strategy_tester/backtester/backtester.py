@@ -13,7 +13,9 @@ class Backtester:
         self.data = data
         self.transaction_cost = transaction_cost # TODO: Implement transaction costs
         self.positions = 0
-        self.trades = []
+        # Calculate daily returns
+        self.data["Daily_Returns"] = self.data["Close"].pct_change()
+        self.data["Benchmark_Ret"] = self.data["Daily_Returns"].cumsum()
 
     def run(self, strategy):
         """
@@ -22,29 +24,31 @@ class Backtester:
         :param strategy: A function that generates buy/sell columns based on the data. True for positive in each column.
         """
         self.data["Position"] = 0
-        signal_long, signal_short = strategy(self.data)
-        self.data["Signal_long"] = signal_long
-        self.data["Signal_short"] = signal_short
+
+        data_position = self.data.copy()
+        signal_long, signal_short = strategy(data_position)
+
+        data_position["Signal_long"] = signal_long.dropna()
+        data_position["Signal_short"] = signal_short.dropna()
+
+        data_position = data_position.dropna()
+        data_position["Benchmark_Ret"] = data_position["Daily_Returns"].cumsum()
 
         # Calculate position based on signals
         # Position: 1 for long, -1 for short, 0 for neutral
-        self.data["Position"] = self.data["Signal_long"].astype(int) - self.data["Signal_short"].astype(int)
-
-        # Calculate daily returns
-        self.data["Daily_Returns"] = self.data["Close"].pct_change()
+        data_position["Position"] = data_position["Signal_long"].astype(int) - data_position["Signal_short"].astype(int)
 
         # Calculate system returns
-        self.data["Sys_Ret"] = (self.data["Position"] * self.data["Daily_Returns"]).cumsum()
+        data_position["Sys_Ret"] = (data_position["Position"] * data_position["Daily_Returns"]).cumsum()
 
         # Calculate system returns long or short only
-        self.data["Sys_Ret_long"] = (self.data["Signal_long"] * self.data["Daily_Returns"]).cumsum()
-        self.data["Sys_Ret_short"] = (self.data["Signal_short"] * (-1) * self.data["Daily_Returns"]).cumsum()
+        data_position["Sys_Ret_long"] = (data_position["Signal_long"] * data_position["Daily_Returns"]).cumsum()
+        data_position["Sys_Ret_short"] = (data_position["Signal_short"] * (-1) * data_position["Daily_Returns"]).cumsum()
 
-        print("Backtesting complete.")
-
-        return {"CAGR": self._calculate_cagr(), "Total_Return": self.data["Sys_Ret"].iloc[-1],
-                "Max_Drawdown": self._calculate_max_drawdown(), "Time_in_Market": self._calculate_time_in_market(),
-                "Long_Return": self.data["Sys_Ret_long"].iloc[-1], "Short_Return": self.data["Sys_Ret_short"].iloc[-1]}
+        return {"data": data_position.copy(), "Total_Return": data_position["Sys_Ret"].iloc[-1],
+                "Time_in_Market": self._calculate_time_in_market(),
+                "Long_Return": data_position["Sys_Ret_long"].iloc[-1], "Short_Return": data_position["Sys_Ret_short"].iloc[-1],
+                "Benchmark_Ret": data_position["Benchmark_Ret"].iloc[-1]}
 
     def report(self):
         """
@@ -54,8 +58,6 @@ class Backtester:
         print(f"Total Return (%): {100 * self.data['Sys_Ret'].iloc[-1]:.2f}")
         print(f"Long Return (%): {100 * self.data['Sys_Ret_long'].iloc[-1]:.2f}")
         print(f"Short Return (%): {100 * self.data['Sys_Ret_short'].iloc[-1]:.2f}")
-        print(f"CAGR (Compound Annual Growth Rate) (%): {100 * self._calculate_cagr():.2f}")
-        print(f"Max Drawdown: {self._calculate_max_drawdown():.2f}")
         print(f"Time in Market: {self._calculate_time_in_market():.2f}%")
 
         print("\nTrade Log: TBD")
@@ -68,30 +70,6 @@ class Backtester:
         """
         return 100 * np.count_nonzero(self.data["Position"]) / len(self.data)
 
-    def _calculate_cagr(self):
-        """
-        Calculate the Compound Annual Growth Rate (CAGR) of the portfolio.
-
-        :return: CAGR as a float.
-        """
-        return (self.data["Sys_Ret"].iloc[-1] / self.data["Sys_Ret"].iloc[0]) ** (252 / len(self.data)) - 1
-
-    def _calculate_max_drawdown(self):
-        """
-        Calculate the maximum drawdown of the portfolio.
-
-        :return: Maximum drawdown as a float.
-        """
-        return np.min(self.data["Sys_Ret"] / np.maximum.accumulate(self.data["Sys_Ret"])) - 1
-
-
-    def get_results(self):
-        """
-        Get the data with calculated portfolio values.
-
-        :return: DataFrame with backtesting results.
-        """
-        return self.data
 
 
 if __name__ == "__main__":
