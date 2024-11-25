@@ -1,3 +1,6 @@
+import numpy as np
+import pandas as pd
+
 
 def moving_average_strategy(short_window=20, long_window=50, sides="both"):
 
@@ -20,7 +23,7 @@ def moving_average_strategy(short_window=20, long_window=50, sides="both"):
 
         # Calculate the slope of the long moving average and volume
         SMA_Long_Slope = SMA_Long.diff()
-        volume_slope = data_s["Volume"].diff()
+        volume_slope = data_s["Volume"].rolling(window=5).mean().diff()
 
         min_length = min(len(SMA_Short), len(SMA_Long), len(SMA_Long_Slope), len(volume_slope))
         SMA_Short = SMA_Short[-min_length:]
@@ -28,13 +31,36 @@ def moving_average_strategy(short_window=20, long_window=50, sides="both"):
         SMA_Long_Slope = SMA_Long_Slope[-min_length:]
         volume_slope = volume_slope[-min_length:]
 
-        # Generate initial signals based on the moving average crossover
-        data_s["long_signal"] = (SMA_Short > SMA_Long).astype(float)
-        data_s["short_signal"] = (SMA_Short < SMA_Long).astype(float)
+        # Determine crossover conditions
+        long_condition = (SMA_Short > SMA_Long) & (SMA_Long_Slope > 0)
+        short_condition = (SMA_Short < SMA_Long) & (SMA_Long_Slope < 0)
+        volume_positive = volume_slope > 0
 
-        # Adjust signals based on the slow moving average trend
-        data_s["long_signal"] = data_s["long_signal"] * (SMA_Long_Slope > 0).astype(float)
-        data_s["short_signal"] = data_s["short_signal"] * (SMA_Long_Slope < 0).astype(float)
+        # Initialize position signals
+        position = pd.Series(0, index=data_s.index)
+
+        # Assign positions only at entry points use volume_positive
+        long_entry = volume_positive & long_condition
+        short_entry = volume_positive & short_condition
+        position.loc[long_entry] = 1  # Long entry
+        position.loc[short_entry] = -1  # Short entry
+
+        # Forward-fill the positions to maintain them until the next change in the condition
+        position = position.replace(0, np.nan)
+        position.loc[(long_condition == False) & (short_condition == False)] = 0
+        position = position.ffill().fillna(0)
+
+        # Remove invalid sides
+        if sides == "long":
+            position[position < 0] = 0
+        elif sides == "short":
+            position[position > 0] = 0
+        elif sides != "both":
+            raise ValueError("Invalid value for 'sides'. Must be 'both', 'long', or 'short'.")
+
+        # Return the positions as signals
+        long_signal = (position == 1).astype(int)
+        short_signal = (position == -1).astype(int)
 
 
         # # Shift signals forward by one period for next-day execution
@@ -43,21 +69,11 @@ def moving_average_strategy(short_window=20, long_window=50, sides="both"):
         #       But it makes the results much worse
         #       So I will shift the signals before the side is chosen
         #       Means that I need to calculate the enter and exit signals in the same day
-        data_s["long_signal"] = data_s["long_signal"].shift(1)
-        data_s["short_signal"] = data_s["short_signal"].shift(1)
+        data_s["long_signal"] = long_signal.shift(1)
+        data_s["short_signal"] = short_signal.shift(1)
 
         # Drop any rows where signals are NaN due to the shift
         data_s.dropna(inplace=True)
-
-        # Handle different 'sides' options
-        if sides == "both":
-            pass
-        elif sides == "long":
-            data_s["short_signal"] = 0
-        elif sides == "short":
-            data_s["long_signal"] = 0
-        else:
-            raise ValueError("Invalid value for 'sides'. Must be 'both', 'long', or 'short'.")
 
         # Fill NaN values with False and convert to integers
         data_s[["long_signal", "short_signal"]] = (
