@@ -1,5 +1,7 @@
 import pandas as pd
 
+
+
 def moving_average_strategy(short_window=20, long_window=50, sides="both"):
 
     def strategy(data_s, fast_window=short_window, slow_window=long_window):
@@ -65,19 +67,18 @@ def moving_average_strategy(short_window=20, long_window=50, sides="both"):
 
 if __name__ == "__main__":
     # Example usage
-    import yfinance as yf
-
     from backtester.backtester import Backtester
+    from data.data_loader import load_data, preprocess_data
 
     # Load sample data
     ticker = "AAPL"
     start_date = "2017-01-01"
     end_date = "2021-01-01"
-    data = yf.download(ticker, start=start_date, end=end_date)
+    # Load and preprocess data
+    raw_data = load_data(ticker, start_date, end_date)
+    data = preprocess_data(raw_data)
 
     # Initialize backtester
     backtester = Backtester(data)
     # Run the backtest
     results = backtester.run(moving_average_strategy(short_window=5, long_window=15))
-    # Generate a report
-    backtester.report()

@@ -50,17 +50,6 @@ class Backtester:
                 "Long_Return": data_position["Sys_Ret_long"].iloc[-1], "Short_Return": data_position["Sys_Ret_short"].iloc[-1],
                 "Benchmark_Ret": data_position["Benchmark_Ret"].iloc[-1]}
 
-    def report(self):
-        """
-        Generate a summary report of the backtesting results.
-        """
-        print("\nBacktesting Report:")
-        print(f"Total Return (%): {100 * self.data['Sys_Ret'].iloc[-1]:.2f}")
-        print(f"Long Return (%): {100 * self.data['Sys_Ret_long'].iloc[-1]:.2f}")
-        print(f"Short Return (%): {100 * self.data['Sys_Ret_short'].iloc[-1]:.2f}")
-        print(f"Time in Market: {self._calculate_time_in_market():.2f}%")
-
-        print("\nTrade Log: TBD")
 
     def _calculate_time_in_market(self):
         """

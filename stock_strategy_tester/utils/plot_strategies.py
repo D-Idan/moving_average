@@ -42,4 +42,4 @@ if __name__ == "__main__":
     data = preprocess_data(raw_data)
 
     # Plot the benchmark price and moving averages
-    plot_moving_averages(data, short_window=60, long_window=112)
+    plot_moving_averages(data, short_window=5, long_window=15)
