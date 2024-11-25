@@ -1,6 +1,3 @@
-import pandas as pd
-
-
 
 def moving_average_strategy(short_window=20, long_window=50, sides="both"):
 

@@ -89,14 +89,15 @@ def generate_report_benchmark(data, risk_free_rate=0.0):
     :param data: DataFrame containing the backtesting results with 'Benchmark_Ret' column.
     :param risk_free_rate: Risk-free rate for performance metrics calculation.
     """
+    data_bench_Ret = data["Daily_Returns"].cumsum()
     print("\nBenchmark Report:")
-    print(f"Total Return (%): {100 * data['Benchmark_Ret'].iloc[-1]:.2f}")
-    print(f"CAGR (Compound Annual Growth Rate) (%): {100 * calculate_cagr(data['Benchmark_Ret']):.2f}")
-    print(f"Max Drawdown: {calculate_max_drawdown(data['Benchmark_Ret']):.2f}")
+    print(f"Total Return (%): {100 * data_bench_Ret.iloc[-1]:.2f}")
+    print(f"CAGR (Compound Annual Growth Rate) (%): {100 * calculate_cagr(data_bench_Ret):.2f}")
+    print(f"Max Drawdown: {calculate_max_drawdown(data_bench_Ret):.2f}")
     print(f"Time in Market: 100.00%")
-    print(f"Sharpe Ratio: {calculate_sharpe_ratio(data['Benchmark_Ret'], risk_free_rate):.2f}")
-    print(f"Volatility: {calculate_volatility(data['Benchmark_Ret']):.2f}")
-    print(f"Sortino Ratio: {calculate_sortino_ratio(data['Benchmark_Ret'], risk_free_rate):.2f}")
+    print(f"Sharpe Ratio: {calculate_sharpe_ratio(data_bench_Ret, risk_free_rate):.2f}")
+    print(f"Volatility: {calculate_volatility(data_bench_Ret):.2f}")
+    print(f"Sortino Ratio: {calculate_sortino_ratio(data_bench_Ret, risk_free_rate):.2f}")
 
 def generate_report_backtest(data, risk_free_rate=0.0):
     """
@@ -104,16 +105,17 @@ def generate_report_backtest(data, risk_free_rate=0.0):
     :param data: DataFrame containing the backtesting results with 'Sys_Ret' column.
     :param risk_free_rate: Risk-free rate for performance metrics calculation.
     """
+    data_Sys_Ret = (data["Position"] * data["Daily_Returns"]).cumsum()
     print("\nBacktesting Report:")
-    print(f"Total Return (%): {100 * data['Sys_Ret'].iloc[-1]:.2f}")
-    print(f"Long Return (%): {100 * data['Sys_Ret_long'].iloc[-1]:.2f}")
-    print(f"Short Return (%): {100 * data['Sys_Ret_short'].iloc[-1]:.2f}")
-    print(f"CAGR (Compound Annual Growth Rate) (%): {100 * calculate_cagr(data['Sys_Ret']):.2f}")
-    print(f"Max Drawdown: {calculate_max_drawdown(data['Sys_Ret']):.2f}")
+    print(f"Total Return (%): {100 * (data["Position"] * data["Daily_Returns"]).sum():.2f}")
+    print(f"Long Return (%): {100 * (data["Signal_long"] * data["Daily_Returns"]).sum():.2f}")
+    print(f"Short Return (%): {100 * (data["Signal_short"] * data["Daily_Returns"]).sum():.2f}")
+    print(f"CAGR (Compound Annual Growth Rate) (%): {100 * calculate_cagr(data_Sys_Ret):.2f}")
+    print(f"Max Drawdown: {calculate_max_drawdown(data_Sys_Ret):.2f}")
     print(f"Time in Market: {100 * np.count_nonzero(data['Position']) / len(data):.2f}%")
-    print(f"Sharpe Ratio: {calculate_sharpe_ratio(data['Sys_Ret'], risk_free_rate):.2f}")
-    print(f"Volatility: {calculate_volatility(data['Sys_Ret']):.2f}")
-    print(f"Sortino Ratio: {calculate_sortino_ratio(data['Sys_Ret'], risk_free_rate):.2f}")
+    print(f"Sharpe Ratio: {calculate_sharpe_ratio(data_Sys_Ret, risk_free_rate):.2f}")
+    print(f"Volatility: {calculate_volatility(data_Sys_Ret):.2f}")
+    print(f"Sortino Ratio: {calculate_sortino_ratio(data_Sys_Ret, risk_free_rate):.2f}")
 
     print("\nTrade Log: ")
     print(f"Number of changes in Position: {data['Position'].diff().abs().sum()}")
@@ -186,7 +188,7 @@ def run_Nvalues_backtest(data, periods_fast, periods_slow, backtester, config, s
     # Test each combination of moving averages
     for short_window in tqdm(periods_fast):
         for long_window in periods_slow:
-            strategy = strategy_tested(short_window=short_window, long_window=long_window)
+            strategy = strategy_tested(short_window, long_window)
             backtest_results = backtester.run(strategy)
 
             # Store the results
