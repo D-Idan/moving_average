@@ -10,12 +10,12 @@ class TestBacktester(unittest.TestCase):
         """
         # Sample stock data
         self.sample_data = pd.DataFrame({
-            "Close": [100, 102, 101, 103, 105, 104, 106]
+            "Open": [100, 102, 101, 103, 105, 104, 106]
         })
 
         # Simple strategy for testing: Buy if the price increases, Sell if it decreases
         def simple_strategy(data):
-            return data["Close"].diff().fillna(0).apply(lambda x: 1 if x > 0 else -1 if x < 0 else 0)
+            return data["Open"].diff().fillna(0).apply(lambda x: 1 if x > 0 else -1 if x < 0 else 0)
 
         self.strategy = simple_strategy
         self.backtester = Backtester(data=self.sample_data)

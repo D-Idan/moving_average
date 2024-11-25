@@ -7,7 +7,7 @@ class Backtester:
         """
         Initialize the backtester with data and parameters.
         
-        :param data: DataFrame containing stock market data with 'Close' prices.
+        :param data: DataFrame containing stock market data with 'Open' prices.
         :param transaction_cost: Transaction cost per trade (as a fraction).
         """
         self.data = data
@@ -65,13 +65,13 @@ if __name__ == "__main__":
     # Example usage
     # Load some stock data
     df = pd.DataFrame({
-        "Close": [100, 102, 105, 103, 106, 110, 108],
+        "Open": [100, 102, 105, 103, 106, 110, 108],
     })
 
     # Define a simple strategy: buy when the price increases and sell when it decreases
     def simple_strategy(data):
-        data["Signal_long"] = data["Close"].diff() > 0
-        data["Signal_short"] = data["Close"].diff() < 0
+        data["Signal_long"] = data["Open"].diff() > 0
+        data["Signal_short"] = data["Open"].diff() < 0
         return data["Signal_long"], data["Signal_short"]
 
     # Initialize the backtester

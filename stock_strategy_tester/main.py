@@ -32,21 +32,21 @@ def main():
     backtester = Backtester(data, initial_balance=config.INITIAL_BALANCE, transaction_cost=config.TRANSACTION_COST)
 
     # # Run the backtest for one combination
-    strategy = moving_average_strategy(short_window=60, long_window=112)
-    run_oneSETvalues_backtest(backtester, config, strategy_tested=strategy)
+    # strategy = moving_average_strategy(short_window=5, long_window=20)
+    # run_oneSETvalues_backtest(backtester, config, strategy_tested=strategy)
 
     # 144 / 112 | 15 / 5
 
 
     ########################################################## Multiple values ##########################################################
-    # Define the range of moving average periods to test
-    # periods_fast = range(100, 180, 5)
-    # periods_slow = range(60, 140, 5)
-    # strategy = moving_average_strategy
-    #
-    # # Run the backtest for each combination of moving average periods - Yearly
-    # run_Nvalues_backtest(data, periods_fast, periods_slow, backtester, config,
-    #                                          strategy_tested=strategy, bin_size=4)
+    # # # Define the range of moving average periods to test
+    periods_fast = range(1, 50, 1)
+    periods_slow = range(1, 300, 5)
+    strategy = moving_average_strategy
+
+    # Run the backtest for each combination of moving average periods - Yearly
+    run_Nvalues_backtest(data, periods_fast, periods_slow, backtester, config,
+                                             strategy_tested=strategy, bin_size=10)
 
 
 

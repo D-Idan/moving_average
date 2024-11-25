@@ -7,12 +7,12 @@ def plot_moving_averages(data, short_window, long_window):
     """
     Plot the benchmark price and the moving averages on the same plot.
 
-    :param data: DataFrame containing stock data with a 'Close' column.
+    :param data: DataFrame containing stock data with a 'Open' column.
     :param short_window: Lookback period for the short moving average.
     :param long_window: Lookback period for the long moving average.
     """
-    if "Close" not in data.columns:
-        raise ValueError("Input data must contain a 'Close' column.")
+    if "Open" not in data.columns:
+        raise ValueError("Input data must contain a 'Open' column.")
 
     # Calculate short and long moving averages
     data["SMA_Short"] = data["Close"].rolling(window=short_window).mean()

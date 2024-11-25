@@ -37,6 +37,18 @@ def moving_average_strategy(short_window=20, long_window=50, sides="both"):
         data_s["long_signal"] = data_s["long_signal"] * (SMA_Long_Slope > 0).astype(float)
         data_s["short_signal"] = data_s["short_signal"] * (SMA_Long_Slope < 0).astype(float)
 
+        # # Shift signals forward by one period for next-day execution
+        # 15 / 5 is the best if not using the shift
+        # Note: It makes much more sense to shift the signals after the side is chosen
+        #       But it makes the results much worse
+        #       So I will shift the signals before the side is chosen
+        #       Means that I need to calculate the enter and exit signals in the same day
+        data_s["long_signal"] = data_s["long_signal"].shift(1)
+        data_s["short_signal"] = data_s["short_signal"].shift(1)
+
+        # Drop any rows where signals are NaN due to the shift
+        data_s.dropna(inplace=True)
+
         # Handle different 'sides' options
         if sides == "both":
             pass
