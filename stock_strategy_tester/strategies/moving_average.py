@@ -18,13 +18,15 @@ def moving_average_strategy(short_window=20, long_window=50, sides="both"):
         SMA_Short = data_s["Close"].rolling(window=fast_window).mean()
         SMA_Long = data_s["Close"].rolling(window=slow_window).mean()
 
-        # Calculate the slope of the long moving average
+        # Calculate the slope of the long moving average and volume
         SMA_Long_Slope = SMA_Long.diff()
+        volume_slope = data_s["Volume"].diff()
 
-        min_length = min(len(SMA_Short), len(SMA_Long), len(SMA_Long_Slope))
+        min_length = min(len(SMA_Short), len(SMA_Long), len(SMA_Long_Slope), len(volume_slope))
         SMA_Short = SMA_Short[-min_length:]
         SMA_Long = SMA_Long[-min_length:]
         SMA_Long_Slope = SMA_Long_Slope[-min_length:]
+        volume_slope = volume_slope[-min_length:]
 
         # Generate initial signals based on the moving average crossover
         data_s["long_signal"] = (SMA_Short > SMA_Long).astype(float)
@@ -33,6 +35,7 @@ def moving_average_strategy(short_window=20, long_window=50, sides="both"):
         # Adjust signals based on the slow moving average trend
         data_s["long_signal"] = data_s["long_signal"] * (SMA_Long_Slope > 0).astype(float)
         data_s["short_signal"] = data_s["short_signal"] * (SMA_Long_Slope < 0).astype(float)
+
 
         # # Shift signals forward by one period for next-day execution
         # 15 / 5 is the best if not using the shift

@@ -18,10 +18,10 @@ import tqdm
 def main():
     # Load sample data
     # ticker = "AAPL"
-    ticker = "SPY"
+    # ticker = "SPY"
     # ticker = "SHOP"
     # ticker = "BRK-B"
-    # ticker = "JPM"
+    ticker = "JPM"
     # ticker = "LUMI.TA"
     # ticker = "BEZQ.TA"
     # ticker = "TSLA"
@@ -35,10 +35,10 @@ def main():
     backtester = Backtester(data, initial_balance=config.INITIAL_BALANCE, transaction_cost=config.TRANSACTION_COST)
 
     # # Run the backtest for one combination
-    # strategy = moving_average_strategy(short_window=5, long_window=20)
-    # strategy = exponential_moving_average_strategy(short_window=5, long_window=20)
-    strategy = ichimoku_cloud_strategy(short_window=50, long_window=70) #50/70
-    strategy = mean_reversion_strategy( window=116, num_std_dev=3, sides="both")
+    strategy = moving_average_strategy(short_window=10, long_window=14)
+    # strategy = exponential_moving_average_strategy(short_window=10, long_window=14)
+    # strategy = ichimoku_cloud_strategy(short_window=50, long_window=70) #50/70
+    # strategy = mean_reversion_strategy( window=116, num_std_dev=3, sides="both")
 
 
     run_oneSETvalues_backtest(backtester, config, strategy_tested=strategy)
