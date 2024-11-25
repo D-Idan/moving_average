@@ -3,7 +3,7 @@ import pandas as pd
 from tqdm import tqdm
 
 from utils.plotter import plot_heatmap, plot_aggregate_heatmap, plot_benchmark_with_positions, plot_gains, \
-    plot_drawdown, plot_volatility
+    plot_drawdown, plot_volatility, plot_yearly_comparison
 
 
 def calculate_sharpe_ratio(data, risk_free_rate=0.0):
@@ -137,12 +137,11 @@ def run_oneSETvalues_backtest(backtester, config, strategy_tested):
     :param config: Configuration object containing initial balance, transaction cost, and risk-free rate.
     :param strategy_tested: Strategy function to test.
     """
-
     backtest_results = backtester.run(strategy_tested)
-
     backtest_results_data = backtest_results["data"]
 
     unique_years = backtest_results_data['Date'].dt.year.unique()
+    yearly_results = []
 
     for year in unique_years:
         print(f"\n\nResults for {year} \n")
@@ -153,10 +152,21 @@ def run_oneSETvalues_backtest(backtester, config, strategy_tested):
 
         # Plot the results
         plot_benchmark_with_positions(yearly_backtest_results, title=f"Backtest Results for {year}", save=True)
-        plot_gains(yearly_backtest_results)
-        plot_drawdown(yearly_backtest_results)
-        plot_volatility(yearly_backtest_results)
+        plot_gains(yearly_backtest_results, title=f"Backtest gains for {year}", save=True)
+        plot_drawdown(yearly_backtest_results, title=f"Backtest Drawdown for {year}", save=True)
+        plot_volatility(yearly_backtest_results, title=f"Backtest Volatility for {year}", save=True)
 
+        # Store yearly results
+        yearly_results.append({
+            "year": year,
+            "strategy_return": (yearly_backtest_results["Position"] * yearly_backtest_results["Daily_Returns"]).sum(),
+            "benchmark_return": yearly_backtest_results["Daily_Returns"].sum(),
+            "long_return": (yearly_backtest_results["Signal_long"] * yearly_backtest_results["Daily_Returns"]).sum(),
+            "short_return": (yearly_backtest_results["Signal_short"] * -yearly_backtest_results["Daily_Returns"]).sum(),
+        })
+
+    # Plot yearly comparison
+    plot_yearly_comparison(yearly_results, title="Yearly Comparison", save=True)
 
 def run_Nvalues_backtest(data, periods_fast, periods_slow, backtester, config, strategy_tested, bin_size=16):
     """
@@ -193,8 +203,10 @@ def run_Nvalues_backtest(data, periods_fast, periods_slow, backtester, config, s
     generate_report_benchmark(backtest_results["data"], risk_free_rate=config.RISK_FREE_RATE)
 
     # Plot the heatmap
-    plot_heatmap(results, periods_fast, periods_slow, center_value=backtest_results["Benchmark_Ret"], title="Full Backtest Results")
-    plot_aggregate_heatmap(results, bin_size=bin_size, center_value=backtest_results["Benchmark_Ret"], title="Full Backtest Results", bests_print=True)
+    plot_heatmap(results, periods_fast, periods_slow, center_value=backtest_results["Benchmark_Ret"],
+                 title="Full Backtest Results", save=True)
+    plot_aggregate_heatmap(results, bin_size=bin_size, center_value=backtest_results["Benchmark_Ret"],
+                           title="Full Backtest Results", bests_print=True, save=True)
 
     for year in unique_years:
         print(f"\n\nResults for {year} \n")

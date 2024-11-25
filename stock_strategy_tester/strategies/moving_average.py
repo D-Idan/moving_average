@@ -4,7 +4,8 @@ def moving_average_strategy(short_window=20, long_window=50, sides="both"):
 
     def strategy(data_s, fast_window=short_window, slow_window=long_window):
         """
-        Generate buy/sell signals based on a simple moving average (SMA) crossover strategy.
+        Generate buy/sell signals based on a simple moving average (SMA) crossover strategy,
+        ensuring alignment with the slow moving average trend.
 
         :param data_s: DataFrame containing stock data with a 'Close' column.
         :param fast_window: Lookback period for the short moving average.
@@ -18,23 +19,31 @@ def moving_average_strategy(short_window=20, long_window=50, sides="both"):
         SMA_Short = data_s["Close"].rolling(window=fast_window).mean()
         SMA_Long = data_s["Close"].rolling(window=slow_window).mean()
 
-        min_length = min(len(SMA_Short), len(SMA_Long))
+        # Calculate the slope of the long moving average
+        SMA_Long_Slope = SMA_Long.diff()
+
+        min_length = min(len(SMA_Short), len(SMA_Long), len(SMA_Long_Slope))
         SMA_Short = SMA_Short[-min_length:]
         SMA_Long = SMA_Long[-min_length:]
+        SMA_Long_Slope = SMA_Long_Slope[-min_length:]
 
-        # Generate signals based on the moving average crossover
+        # Generate initial signals based on the moving average crossover
+        data_s["long_signal"] = (SMA_Short > SMA_Long).astype(float)
+        data_s["short_signal"] = (SMA_Short < SMA_Long).astype(float)
+
+        # Adjust signals based on the slow moving average trend
+        data_s["long_signal"] = data_s["long_signal"] * (SMA_Long_Slope > 0).astype(float)
+        data_s["short_signal"] = data_s["short_signal"] * (SMA_Long_Slope < 0).astype(float)
+
+        # Handle different 'sides' options
         if sides == "both":
-            data_s["long_signal"] = (SMA_Short > SMA_Long).astype(float)
-            data_s["short_signal"] = (SMA_Short < SMA_Long).astype(float)
+            pass
         elif sides == "long":
-            data_s["long_signal"] = (SMA_Short > SMA_Long).astype(float)
             data_s["short_signal"] = 0
         elif sides == "short":
             data_s["long_signal"] = 0
-            data_s["short_signal"] = (SMA_Short < SMA_Long).astype(float)
         else:
             raise ValueError("Invalid value for 'sides'. Must be 'both', 'long', or 'short'.")
-
 
         # Fill NaN values with False and convert to integers
         data_s[["long_signal", "short_signal"]] = (
@@ -62,8 +71,8 @@ if __name__ == "__main__":
 
     # Load sample data
     ticker = "AAPL"
-    start_date = "2022-01-01"
-    end_date = "2023-01-01"
+    start_date = "2017-01-01"
+    end_date = "2021-01-01"
     data = yf.download(ticker, start=start_date, end=end_date)
 
     # Initialize backtester

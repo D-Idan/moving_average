@@ -1,5 +1,8 @@
 import matplotlib.pyplot as plt
 
+from data.data_loader import load_data, preprocess_data
+
+
 def plot_moving_averages(data, short_window, long_window):
     """
     Plot the benchmark price and the moving averages on the same plot.
@@ -31,9 +34,12 @@ if __name__ == "__main__":
 
     # Load sample data
     ticker = "AAPL"
-    start_date = "2022-01-01"
-    end_date = "2023-01-01"
-    data = yf.download(ticker, start=start_date, end=end_date)
+    # ticker = "TSLA"
+    start_date = "2017-01-01"
+    end_date = "2024-01-01"
+    # Load and preprocess data
+    raw_data = load_data(ticker, start_date, end_date)
+    data = preprocess_data(raw_data)
 
     # Plot the benchmark price and moving averages
-    plot_moving_averages(data, short_window=20, long_window=50)
+    plot_moving_averages(data, short_window=60, long_window=112)
