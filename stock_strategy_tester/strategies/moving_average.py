@@ -63,16 +63,21 @@ def moving_average_strategy(short_window=20, long_window=50, sides="both"):
         short_signal = (position == -1).astype(int)
 
 
-        # # Shift signals forward by one period for next-day execution
-        # 15 / 5 is the best if not using the shift
-        # Note: It makes much more sense to shift the signals after the side is chosen
-        #       But it makes the results much worse
-        #       So I will shift the signals before the side is chosen
-        #       Means that I need to calculate the enter and exit signals in the same day
-        data_s["long_signal"] = long_signal.shift(1)
-        data_s["short_signal"] = short_signal.shift(1)
+        # # # Shift signals forward by one period for next-day execution
+        # # 15 / 5 is the best if not using the shift
+        # # Note: It makes much more sense to shift the signals after the side is chosen
+        # #       But it makes the results much worse
+        # #       So I will shift the signals before the side is chosen
+        # #       Means that I need to calculate the enter and exit signals in the same day
+        # # data_s["long_signal"] = long_signal.shift(1)
+        # # data_s["short_signal"] = short_signal.shift(1)
+
+        long_signal = long_signal.shift(1)
+        short_signal = short_signal.shift(1)
 
         # Drop any rows where signals are NaN due to the shift
+        data_s["long_signal"] = long_signal
+        data_s["short_signal"] = short_signal
         data_s.dropna(inplace=True)
 
         # Fill NaN values with False and convert to integers

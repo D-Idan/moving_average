@@ -33,7 +33,8 @@ if __name__ == "__main__":
     import yfinance as yf
 
     # Load sample data
-    ticker = "AAPL"
+    ticker = "JPM"
+    # ticker = "AAPL"
     # ticker = "TSLA"
     start_date = "2017-01-01"
     end_date = "2024-01-01"
@@ -42,4 +43,4 @@ if __name__ == "__main__":
     data = preprocess_data(raw_data)
 
     # Plot the benchmark price and moving averages
-    plot_moving_averages(data, short_window=5, long_window=15)
+    plot_moving_averages(data, short_window=20, long_window=76)

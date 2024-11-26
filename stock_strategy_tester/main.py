@@ -17,11 +17,11 @@ import tqdm
 
 def main():
     # Load sample data
-    # ticker = "AAPL"
+    ticker = "AAPL"
     # ticker = "SPY"
     # ticker = "SHOP"
     # ticker = "BRK-B"
-    ticker = "JPM"
+    # ticker = "JPM"
     # ticker = "LUMI.TA"
     # ticker = "BEZQ.TA"
     # ticker = "TSLA"
@@ -35,7 +35,7 @@ def main():
     backtester = Backtester(data, initial_balance=config.INITIAL_BALANCE, transaction_cost=config.TRANSACTION_COST)
 
     # # Run the backtest for one combination
-    strategy = moving_average_strategy(short_window=4, long_window=150)
+    strategy = moving_average_strategy(short_window=20, long_window=76)
     # strategy = exponential_moving_average_strategy(short_window=10, long_window=13)
     # strategy = ichimoku_cloud_strategy(short_window=50, long_window=70) #50/70
     # strategy = mean_reversion_strategy( window=116, num_std_dev=3, sides="both")
@@ -48,18 +48,18 @@ def main():
 
     ########################################################## Multiple values ##########################################################
     # # # # Define the range of moving average periods to test
-    periods_fast = range(1, 300, 5)
-    periods_slow = range(1, 300, 5)
+    periods_fast = range(20, 100, 2)
+    periods_slow = range(20, 100, 2)
     # periods_slow = [x / 10 for x in range(1, 40, 1)]
     #
-    # strategy = moving_average_strategy
-    strategy = exponential_moving_average_strategy
+    strategy = moving_average_strategy
+    # strategy = exponential_moving_average_strategy
     # strategy = ichimoku_cloud_strategy
     # strategy = mean_reversion_strategy
     # #
-    # # # Run the backtest for each combination of moving average periods - Yearly
+    # # Run the backtest for each combination of moving average periods - Yearly
     # run_Nvalues_backtest(data, periods_fast, periods_slow, backtester, config,
-    #                                          strategy_tested=strategy, bin_size=10)
+    #                                          strategy_tested=strategy, bin_size=4)
 
 
 
