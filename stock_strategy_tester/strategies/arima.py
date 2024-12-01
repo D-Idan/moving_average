@@ -1,45 +1,40 @@
 import numpy as np
 import pandas as pd
+from statsmodels.tsa.arima.model import ARIMA
 
 
-def ptcv_strategy(short_window=20, long_window=80, sides="both"):
+def arma_strategy(low=4, high=4, threshold=0.01, sides="both"):
+# def arma_strategy(order=(4, 0, 4), threshold=0.01, sides="both"):
+    """
+    Generate buy/sell signals based on an ARMA model.
 
-    def strategy(data_s, fast_window=short_window, slow_window=long_window):
-        """
-        [Placeholder]
-        """
+    :param order: ARMA model order (p, d, q).
+    :param threshold: Minimum predicted return for generating signals.
+    :param sides: 'both', 'long', or 'short' indicating which signals to consider.
+    :return: Function that returns buy/sell signals.
+    """
+    order = (low, 0, high)
+    def strategy(data_s):
         if "Close" not in data_s.columns:
             raise ValueError("Input data must contain a 'Close' column.")
 
-        # Calculate price and volume change percentage
-        data_s["Close_pct"] = data_s["Close"].pct_change().rolling(window=fast_window).mean()
-        data_s["Volume_pct"] = data_s["Volume"].pct_change().rolling(window=slow_window).mean()
+        # Calculate returns
+        data_s["Return"] = data_s["Close"].pct_change().fillna(0)
 
-        # Calculate ptcv
-        data_s["ptcv"] = data_s["Close_pct"] * data_s["Volume_pct"]
+        # Fit ARMA model
+        model = ARIMA(data_s["Return"], order=order).fit()
 
-        # Calculate short and long moving averages
-        ptcv_Short = data_s["ptcv"].rolling(window=fast_window).mean()
-        ptcv_Long = data_s["ptcv"].rolling(window=slow_window).mean()
-
-        # Calculate the slope of the long moving average and volume
-        ptcv_diff = ptcv_Long.rolling(window=fast_window).mean()
-        ptcv_diff = (ptcv_Long  - ptcv_diff)
-
-        min_length = min(len(ptcv_Short), len(ptcv_Long))
-        SMA_Short = ptcv_Short[-min_length:]
-        SMA_Long = ptcv_Long[-min_length:]
-
-        # Determine crossover conditions
-        long_condition = (SMA_Short > SMA_Long)   & (ptcv_diff > 0)
-        short_condition = (SMA_Short < SMA_Long)   & (ptcv_diff < 0)
+        # Predict returns
+        data_s["Predicted_Return"] = model.predict(start=order[0], end=len(data_s) - 1)
 
         # Initialize position signals
         position = pd.Series(0, index=data_s.index)
 
-        # Set the position based on the conditions
-        position.loc[long_condition] = 1  # Long entry
-        position.loc[short_condition] = -1  # Short entry
+        # Generate signals based on predicted returns and threshold
+        long_entry = data_s["Predicted_Return"] > threshold
+        short_entry = data_s["Predicted_Return"] < -threshold
+        position.loc[long_entry] = 1  # Long entry
+        position.loc[short_entry] = -1  # Short entry
 
         # Remove invalid sides
         if sides == "long":
@@ -52,12 +47,6 @@ def ptcv_strategy(short_window=20, long_window=80, sides="both"):
         # Return the positions as signals
         long_signal = (position == 1).astype(int)
         short_signal = (position == -1).astype(int)
-
-        # Switch 1 to 0 and 0 to 1
-        long_signal_op = short_signal.copy()
-        short_signal_op = long_signal.copy()
-        long_signal = long_signal_op
-        short_signal = short_signal_op
 
 
         # # # Shift signals forward by one period for next-day execution
@@ -96,7 +85,6 @@ def ptcv_strategy(short_window=20, long_window=80, sides="both"):
 
 
 if __name__ == "__main__":
-    # Example usage
     from backtester.backtester import Backtester
     from data.data_loader import load_data, preprocess_data
 
@@ -104,11 +92,10 @@ if __name__ == "__main__":
     ticker = "AAPL"
     start_date = "2017-01-01"
     end_date = "2021-01-01"
-    # Load and preprocess data
     raw_data = load_data(ticker, start_date, end_date)
     data = preprocess_data(raw_data)
 
     # Initialize backtester
     backtester = Backtester(data)
     # Run the backtest
-    results = backtester.run(moving_average_strategy(short_window=5, long_window=15))
+    results = backtester.run(arma_strategy(order=(4, 0, 4), threshold=0.01))
