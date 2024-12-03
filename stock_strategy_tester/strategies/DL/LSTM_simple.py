@@ -27,7 +27,7 @@ def preprocess_data2(data):
     data['Pct_low'] = data['Low'].pct_change().rolling(window=20).mean() * 100
     data['Pct_High'] = data['High'].pct_change().rolling(window=20).mean() * 100
 
-    data['Pct_Future_Close'] = data['Pct_Change'].shift(-1)
+    data['Pct_Future_Close'] = data['Pct_Change'].shift(-5)
     # Normalize the target (Pct_Change) as well
     Volume_rolling_mean = data['Volume'].pct_change().rolling(window=40).mean()  * 100
 
@@ -93,15 +93,15 @@ class BiLSTM1(nn.Module):
         self.hidden_size = hidden_size
         self.num_layers = num_layers
 
-        # Dynamically create LSTM layers based on sequence lengths
-        self.lstm_layers = nn.ModuleDict({
-            f'lstm_{seq_len}': nn.LSTM(input_size, hidden_size, num_layers,
-                                       batch_first=True, bidirectional=True)
-            for seq_len in seq_lengths
-        })
+        # Layer 1: FC
+
+
+        # Create LSTM layers
+        self.lstm1= nn.LSTM(input_size, hidden_size, num_layers, batch_first=True, bidirectional=True)
 
         # Final fully connected layer for output
         self.fc = nn.Sequential(
+            nn.LeakyReLU(),
             nn.Linear(hidden_size * 2 * len(seq_lengths), output_size * 64),
             nn.ReLU(),
             nn.Linear(output_size * 64, output_size * 8),
@@ -110,23 +110,8 @@ class BiLSTM1(nn.Module):
         )
 
     def forward(self, x):
-        # Forward pass through all LSTM layers and capture last hidden state
-        lstm_outputs = []
-        for seq_len, lstm in self.lstm_layers.items():
-            # Convert the keys into a list of integers for comparison
-            seq_lengths_int = [int(key.split('_')[1]) for key in self.lstm_layers.keys()]
-
-            # Updated line for indexing
-            input = x[seq_lengths_int.index(int(seq_len.split('_')[1]))].float()
-            #Using previous h and c states for subsequent batches without resetting them can introduce
-            # data leakage between independent sequences. Don't use h and c states from previous batches.
-            lstm_out, _ = lstm(input)
-
-            lstm_outputs.append(lstm_out[:, -1, :])
-
-        combined_output = torch.cat(lstm_outputs, dim=1)
-
-        output = self.fc(combined_output)
+        lstm_out, _ = self.lstm1(x[0])
+        output = self.fc(lstm_out[:, -1, :])
         return output
 
 
@@ -134,8 +119,8 @@ def train_model(model, dataloader, device, lr, epochs):
     # Training routine for the model
     optimizer = torch.optim.Adam(model.parameters(), lr=lr)
     # Absolute L1 loss is used as the loss function
-    criterion = nn.HuberLoss()
-    # criterion = nn.L1Loss()
+    # criterion = nn.HuberLoss()
+    criterion = nn.L1Loss()
     model.train()
 
     # Save best model
@@ -192,16 +177,17 @@ def load_model(model, path):
 
 if __name__ == "__main__":
     # Example configuration and data loading
-    seq_lengths = [5, 10, 20, 150]  # Sequence lengths for LSTMs
+    seq_lengths = [30]  # Sequence lengths for LSTMs
     input_size = 5  # input features: Volume_Norm, Pct_Change and Pct_open, Pct_low, Pct_High
     hidden_size = 128
-    num_layers = 5
+    num_layers = 2
     output_size = 1  # Predict price change in 5 days
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    lr = 10
-    epochs = 500
-    batch_size = 32
+    lr = 0.0001
+    epochs = 200
+    batch_size = 128
 
+    # model_path = None
     model_path = "best_model.pt" # None if you want to train the model
 
     # Load and preprocess data
@@ -221,7 +207,7 @@ if __name__ == "__main__":
     model = BiLSTM1(input_size, hidden_size, num_layers, output_size, seq_lengths).to(device)
     if model_path:
         model = load_model(model, model_path)
-    # trained_model = train_model(model, dataloader, device, lr, epochs)
+    trained_model = train_model(model, dataloader, device, lr, epochs)
 
     # Evaluate the model
     if model_path:
