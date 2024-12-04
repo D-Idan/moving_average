@@ -1,3 +1,5 @@
+import random
+
 import torch
 import torch.nn as nn
 from matplotlib import pyplot as plt
@@ -22,14 +24,14 @@ def preprocess_data2(data):
     data = data.dropna()
 
     # Calculate the label: percentage change in closing price in 5 days
-    data['Pct_Change'] = data['Close'].pct_change().rolling(window=20).mean() * 100
-    data['Pct_open'] = data['Open'].pct_change().rolling(window=20).mean() * 100
-    data['Pct_low'] = data['Low'].pct_change().rolling(window=20).mean() * 100
-    data['Pct_High'] = data['High'].pct_change().rolling(window=20).mean() * 100
+    data['Pct_Change'] = data['Close'].rolling(window=5).mean().pct_change()
+    data['Pct_open'] = data['Open'].rolling(window=5).mean().pct_change()
+    data['Pct_low'] = data['Low'].rolling(window=5).mean().pct_change()
+    data['Pct_High'] = data['High'].rolling(window=5).mean().pct_change()
 
     data['Pct_Future_Close'] = data['Pct_Change'].shift(-5)
     # Normalize the target (Pct_Change) as well
-    Volume_rolling_mean = data['Volume'].pct_change().rolling(window=40).mean()  * 100
+    Volume_rolling_mean = data['Volume'].pct_change().rolling(window=40).mean()
 
     data['Volume_Norm'] = Volume_rolling_mean
 
@@ -115,23 +117,18 @@ class BiLSTM1(nn.Module):
         return output
 
 
-def train_model(model, dataloader, device, lr, epochs):
-    # Training routine for the model
+def train_model(model, train_loader, val_loader, device, lr, epochs):
     optimizer = torch.optim.Adam(model.parameters(), lr=lr)
-    # Absolute L1 loss is used as the loss function
-    # criterion = nn.HuberLoss()
     criterion = nn.L1Loss()
     model.train()
 
-    # Save best model
-    best_model = float('inf')
+    best_val_loss = float('inf')
 
     for epoch in range(epochs):
-
         total_loss = 0
-        for X, y in dataloader:
+        for X, y in train_loader:
             X = [x.to(device) for x in X]
-            y = y.float().to(device)  # Convert y to float
+            y = y.float().to(device)
             optimizer.zero_grad()
             output = model(X)
             loss = criterion(output, y)
@@ -139,11 +136,23 @@ def train_model(model, dataloader, device, lr, epochs):
             optimizer.step()
             total_loss += loss.item()
 
-        if total_loss < best_model:
-            best_model = total_loss
-            torch.save(model.state_dict(), "best_model.pt")
+        # Validation
+        val_loss = 0
+        model.eval()
+        with torch.no_grad():
+            for X_val, y_val in val_loader:
+                X_val = [x.to(device) for x in X_val]
+                y_val = y_val.float().to(device)
+                val_output = model(X_val)
+                val_loss += criterion(val_output, y_val).item()
 
-        print(f'Epoch [{epoch + 1}/{epochs}], Loss: {total_loss / len(dataloader):.8f}')
+        val_loss /= len(val_loader)
+        print(f'Epoch [{epoch + 1}/{epochs}], Loss: {total_loss / len(train_loader):.8f}, Val Loss: {val_loss:.8f}')
+
+        # Save the model if it improves on validation loss
+        if val_loss < best_val_loss:
+            best_val_loss = val_loss
+            torch.save(model.state_dict(), "best_model.pt")
 
     return model
 
@@ -161,6 +170,45 @@ def evaluate_model(model, dataloader, device):
             labels.append(y.cpu().numpy())
     return np.concatenate(predictions), np.concatenate(labels)
 
+def split_time_series_dataset(dataset, seq_lengths, batch_size):
+    # Calculate block size and number of blocks
+    block_size = batch_size * max(seq_lengths)
+    num_blocks = len(dataset) // block_size
+
+    # Create a list of block indices
+    block_indices = list(range(num_blocks))
+
+    # Shuffle and split the block indices according to the train/val/test ratios
+    random.shuffle(block_indices)
+    train_ratio, val_ratio, test_ratio = 0.7, 0.15, 0.15
+    train_end = int(train_ratio * num_blocks)
+    val_end = train_end + int(val_ratio * num_blocks)
+
+    train_blocks = block_indices[:train_end]
+    val_blocks = block_indices[train_end:val_end]
+    test_blocks = block_indices[val_end:]
+
+    # Flatten block indices to generate sample indices
+    def get_sample_indices(blocks, block_size):
+        return [i for block in blocks for i in range(block * block_size, (block + 1) * block_size)]
+
+    train_indices = get_sample_indices(train_blocks, block_size)
+    val_indices = get_sample_indices(val_blocks, block_size)
+    test_indices = get_sample_indices(test_blocks, block_size)
+
+    # Create Subsets based on selected indices
+    train_dataset = torch.utils.data.Subset(dataset, train_indices)
+    val_dataset = torch.utils.data.Subset(dataset, val_indices)
+    test_dataset = torch.utils.data.Subset(dataset, test_indices)
+
+    # DataLoaders
+    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=False)
+    val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False)
+    test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
+
+
+    return train_loader, val_loader, test_loader , test_indices
+
 def plot_predictions(predictions, labels):
     # Plot the predictions against the actual labels
     plt.figure(figsize=(14, 7))
@@ -169,6 +217,64 @@ def plot_predictions(predictions, labels):
     plt.title('Predictions vs Actual Labels')
     plt.legend()
     plt.show()
+
+
+def plot_predictions_with_signals(predictions, labels, original_prices):
+    plt.figure(figsize=(14, 7))
+
+    # Plot actual stock prices
+    plt.plot(original_prices, label='Stock Price', color='blue', alpha=0.6)
+
+    # Counters for correct predictions
+    correct_positive = 0
+    correct_negative = 0
+    total_positive = 0
+    total_negative = 0
+
+    # Track true positive and true negative indices for marking
+    tp_indices = []
+    tn_indices = []
+
+    # Indicate positive and negative predictions and calculate accuracy
+    for i in range(len(predictions)):
+        pred_direction = 1 if predictions[i] >= 0 else -1
+        label_direction = 1 if labels[i] >= 0 else -1
+
+        # Check if prediction matches label direction
+        if pred_direction == label_direction:
+            if pred_direction == 1:
+                correct_positive += 1
+                tp_indices.append(i)  # Track TP
+            else:
+                correct_negative += 1
+                tn_indices.append(i)  # Track TN
+
+        # Count total positives and negatives in labels
+        if label_direction == 1:
+            total_positive += 1
+        else:
+            total_negative += 1
+
+        # Plot green for positive, red for negative predictions
+        color = 'green' if pred_direction == 1 else 'red'
+        plt.axvline(i, color=color, alpha=0.2)
+
+    # Mark true positives and true negatives
+    plt.scatter(tp_indices, [original_prices[i] for i in tp_indices], color='lime', marker='o', label='True Positive', zorder=5)
+    plt.scatter(tn_indices, [original_prices[i] for i in tn_indices], color='orange', marker='x', label='True Negative', zorder=5)
+
+    # Calculate accuracy percentages
+    positive_accuracy = (correct_positive / total_positive * 100) if total_positive > 0 else 0
+    negative_accuracy = (correct_negative / total_negative * 100) if total_negative > 0 else 0
+
+    # Display accuracies on the plot
+    plt.title(f'Stock Price with Prediction Signals\n'
+              f'Positive Accuracy: {positive_accuracy:.2f}% | Negative Accuracy: {negative_accuracy:.2f}%')
+    plt.legend()
+    plt.show()
+
+
+
 
 def load_model(model, path):
     model.load_state_dict(torch.load(path))
@@ -183,9 +289,9 @@ if __name__ == "__main__":
     num_layers = 2
     output_size = 1  # Predict price change in 5 days
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    lr = 0.0001
-    epochs = 200
-    batch_size = 128
+    lr = 0.001
+    epochs = 1
+    batch_size = 4
 
     # model_path = None
     model_path = "best_model.pt" # None if you want to train the model
@@ -193,7 +299,7 @@ if __name__ == "__main__":
     # Load and preprocess data
     # ticker = "AAPL"
     ticker = "JPM"
-    start_date = "2018-01-01"
+    start_date = "2007-01-01"
     end_date = "2023-01-01"
 
     # Load and preprocess data
@@ -201,20 +307,22 @@ if __name__ == "__main__":
     processed_data = preprocess_data(raw_data)
     processed_data = preprocess_data2(processed_data)
     dataset = StockDataset(processed_data, seq_lengths)
-    dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=False)
+    # Split data into train, validation, and test
+    train_loader, val_loader, test_loader , test_indices = split_time_series_dataset(dataset, seq_lengths, batch_size)
 
     # Initialize and train the model
     model = BiLSTM1(input_size, hidden_size, num_layers, output_size, seq_lengths).to(device)
-    if model_path:
-        model = load_model(model, model_path)
-    trained_model = train_model(model, dataloader, device, lr, epochs)
 
     # Evaluate the model
     if model_path:
         trained_model = load_model(model, model_path)
-    predictions, labels = evaluate_model(trained_model, dataloader, device)
-    print("Mean Squared Error:", ((predictions - labels) ** 2).mean())
-    print("Mean Absolute Error:", np.abs(predictions - labels).mean())
+    # Train the model
+    trained_model = train_model(model, train_loader, val_loader, device, lr, epochs)
+
+    # Evaluate the model on the test set
+    predictions, labels = evaluate_model(trained_model, test_loader, device)
+    print("Test Mean Squared Error:", ((predictions - labels) ** 2).mean())
+    print("Test Mean Absolute Error:", np.abs(predictions - labels).mean())
 
     #Save the model
     torch.save(trained_model.state_dict(), "model.pt")
@@ -222,4 +330,11 @@ if __name__ == "__main__":
     # Plot the predictions
     plot_predictions(predictions, labels)
 
-
+    # Original prices needed for the plot
+    # Extract corresponding actual labels from the processed dataset
+    actual_labels = processed_data['Pct_Future_Close'].iloc[test_indices].values
+    # Ensure alignment for plotting
+    print(f"Actual vs Predicted lengths: {len(actual_labels)}, {len(predictions)}")
+    # Plot comparison
+    original_prices = processed_data['Close'].iloc[test_indices].values
+    plot_predictions_with_signals(predictions, labels, original_prices)
