@@ -1,4 +1,5 @@
 import random
+from sklearn.preprocessing import StandardScaler
 
 import torch
 import torch.nn as nn
@@ -23,19 +24,28 @@ def preprocess_data2(data):
     # Remove rows with missing data
     data = data.dropna()
 
-    # Calculate the label: percentage change in closing price in 5 days
-    data['Pct_Change'] = data['Close'].rolling(window=5).mean().pct_change()
-    data['Pct_open'] = data['Open'].rolling(window=5).mean().pct_change()
-    data['Pct_low'] = data['Low'].rolling(window=5).mean().pct_change()
-    data['Pct_High'] = data['High'].rolling(window=5).mean().pct_change()
+    # Calculate percentage changes and future close price
+    data['Pct_Change'] = data['Close'].rolling(window=20).mean().pct_change()
+    data['Pct_open'] = data['Open'].rolling(window=20).mean().pct_change()
+    data['Pct_low'] = data['Low'].rolling(window=20).mean().pct_change()
+    data['Pct_High'] = data['High'].rolling(window=20).mean().pct_change()
 
-    data['Pct_Future_Close'] = data['Pct_Change'].shift(-5)
-    # Normalize the target (Pct_Change) as well
+    # Normalize the volume
     Volume_rolling_mean = data['Volume'].pct_change().rolling(window=40).mean()
-
     data['Volume_Norm'] = Volume_rolling_mean
 
-    # Drop rows where label calculation would introduce NaN values
+    # Drop rows with NaN values after the calculations
+    data = data.dropna()
+
+    # # Standardize input features
+    # scaler = StandardScaler()
+    # feature_cols = ['Volume_Norm', 'Pct_Change', 'Pct_open', 'Pct_low', 'Pct_High']
+    # data[feature_cols] = scaler.fit_transform(data[feature_cols])
+
+    # Calculate the label: percentage change in closing price in 5 days
+    data['Pct_Future_Close'] = data['Pct_Change'].shift(-5)
+
+    # Drop rows with NaN values after standardization
     data = data.dropna()
 
     return data
@@ -43,27 +53,25 @@ def preprocess_data2(data):
 
 # Updated dataset class to handle percentage change label
 class StockDataset(Dataset):
-    def __init__(self, data, seq_lengths):
+    def __init__(self, data_s, seq_lengths):
         """
         Dataset for loading stock data with variable sequence lengths.
         Args:
             data (pd.DataFrame): Stock data with features and labels.
             seq_lengths (list): List of sequence lengths for different LSTMs.
         """
-        self.data = data
+        self.data_s = data_s
         self.seq_lengths = seq_lengths
         self.model_input_features = ['Volume_Norm', 'Pct_Change', 'Pct_open', 'Pct_low', 'Pct_High']
         self.model_output_features = ['Pct_Future_Close']
-        self.model_index = self.data["Date"]
+        self.model_index = self.data_s["Date"]
 
-        self.model_data = self.data[self.model_input_features + self.model_output_features]
+        self.model_data = self.data_s[self.model_input_features + self.model_output_features]
         # Assign index to the model data
         self.model_data.index = self.model_index
 
-
-
     def __len__(self):
-        return len(self.data) - max(self.seq_lengths)
+        return len(self.data_s) - max(self.seq_lengths)
 
     def __getitem__(self, index):
         # Collect the sequences for each LSTM with different sequence lengths
@@ -75,9 +83,9 @@ class StockDataset(Dataset):
             X.append(torch.tensor(sequence, dtype=torch.float32))
 
         # Get the target label for prediction
-        y = self.model_data[self.model_output_features].iloc[end] # Pct_Change column is the label
+        y = self.model_data[self.model_output_features].iloc[end].values # Pct_Change column is the label
 
-        return X, np.float32(y)
+        return X, torch.tensor(y, dtype=torch.float32)
 
 
 class BiLSTM1(nn.Module):
@@ -95,30 +103,32 @@ class BiLSTM1(nn.Module):
         self.hidden_size = hidden_size
         self.num_layers = num_layers
 
-        # Layer 1: FC
+        # LSTM layers
+        self.lstm1 = nn.LSTM(input_size, hidden_size, num_layers, batch_first=True, bidirectional=True)
 
+        # # Dropout to prevent overfitting
+        # self.dropout = nn.Dropout(p=0.3)  # Dropout with a probability of 30%
 
-        # Create LSTM layers
-        self.lstm1= nn.LSTM(input_size, hidden_size, num_layers, batch_first=True, bidirectional=True)
-
-        # Final fully connected layer for output
+        # Fully connected layers
         self.fc = nn.Sequential(
             nn.LeakyReLU(),
             nn.Linear(hidden_size * 2 * len(seq_lengths), output_size * 64),
             nn.ReLU(),
             nn.Linear(output_size * 64, output_size * 8),
+            # self.dropout,  # Dropout before final layer
             nn.ReLU(),
             nn.Linear(output_size * 8, output_size)
         )
 
     def forward(self, x):
         lstm_out, _ = self.lstm1(x[0])
+        # lstm_out = self.dropout(lstm_out)  # Apply dropout
         output = self.fc(lstm_out[:, -1, :])
         return output
 
 
 def train_model(model, train_loader, val_loader, device, lr, epochs):
-    optimizer = torch.optim.Adam(model.parameters(), lr=lr)
+    optimizer = torch.optim.Adam(model.parameters(), lr=lr, weight_decay=1e-5)
     criterion = nn.L1Loss()
     model.train()
 
@@ -157,18 +167,20 @@ def train_model(model, train_loader, val_loader, device, lr, epochs):
     return model
 
 
-def evaluate_model(model, dataloader, device):
-    # Model evaluation on the dataset
+def evaluate_model_with_indices(model, dataloader, device, dataset):
     model.eval()
-    predictions, labels = [], []
+    predictions, labels, index_map = [], [], []
     with torch.no_grad():
-        for X, y in dataloader:
+        for batch_idx, (X, y) in enumerate(dataloader):
             X = [x.to(device) for x in X]
-            y = y.float().to(device)  # Convert y to float
+            y = y.float().to(device)
             output = model(X)
             predictions.append(output.cpu().numpy())
             labels.append(y.cpu().numpy())
-    return np.concatenate(predictions), np.concatenate(labels)
+            index_map.extend(
+                dataloader.dataset.indices[batch_idx * dataloader.batch_size: (batch_idx + 1) * dataloader.batch_size])
+
+    return np.concatenate(predictions), np.concatenate(labels), index_map
 
 def split_time_series_dataset(dataset, seq_lengths, batch_size):
     # Calculate block size and number of blocks
@@ -289,8 +301,8 @@ if __name__ == "__main__":
     num_layers = 2
     output_size = 1  # Predict price change in 5 days
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    lr = 0.001
-    epochs = 1
+    lr = 0.0001
+    epochs = 2000
     batch_size = 4
 
     # model_path = None
@@ -320,7 +332,7 @@ if __name__ == "__main__":
     trained_model = train_model(model, train_loader, val_loader, device, lr, epochs)
 
     # Evaluate the model on the test set
-    predictions, labels = evaluate_model(trained_model, test_loader, device)
+    predictions, labels, aligned_indices = evaluate_model_with_indices(trained_model, test_loader, device, dataset)
     print("Test Mean Squared Error:", ((predictions - labels) ** 2).mean())
     print("Test Mean Absolute Error:", np.abs(predictions - labels).mean())
 
@@ -332,9 +344,9 @@ if __name__ == "__main__":
 
     # Original prices needed for the plot
     # Extract corresponding actual labels from the processed dataset
-    actual_labels = processed_data['Pct_Future_Close'].iloc[test_indices].values
-    # Ensure alignment for plotting
-    print(f"Actual vs Predicted lengths: {len(actual_labels)}, {len(predictions)}")
+    first_index = np.argmin(np.abs(train_loader.dataset.dataset.data_s['Pct_Future_Close'].values - labels[0]))
+    aligned_indices = np.array(aligned_indices) + (first_index  - aligned_indices[0])
+    actual_labels = processed_data['Pct_Future_Close'].iloc[aligned_indices].values    # Ensure alignment for plotting
     # Plot comparison
-    original_prices = processed_data['Close'].iloc[test_indices].values
+    original_prices = processed_data['Close'].iloc[aligned_indices].values
     plot_predictions_with_signals(predictions, labels, original_prices)
