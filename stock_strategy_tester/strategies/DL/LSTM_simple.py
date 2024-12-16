@@ -11,6 +11,7 @@ import pandas as pd
 import numpy as np
 
 from data.data_loader import load_data, preprocess_data
+from strategies.DL.losses import TrendAwareLoss
 
 
 def preprocess_data2(data):
@@ -25,13 +26,13 @@ def preprocess_data2(data):
     data = data.dropna()
 
     # Calculate percentage changes and future close price
-    data['Pct_Change'] = data['Close'].rolling(window=20).mean().pct_change()
-    data['Pct_open'] = data['Open'].rolling(window=20).mean().pct_change()
-    data['Pct_low'] = data['Low'].rolling(window=20).mean().pct_change()
-    data['Pct_High'] = data['High'].rolling(window=20).mean().pct_change()
+    data['Pct_Change'] = data['Close'].rolling(window=15).mean().pct_change().rolling(window=50).mean()
+    data['Pct_open'] = data['Open'].rolling(window=15).mean().pct_change().rolling(window=50).mean()
+    data['Pct_low'] = data['Low'].rolling(window=15).mean().pct_change().rolling(window=50).mean()
+    data['Pct_High'] = data['High'].rolling(window=15).mean().pct_change().rolling(window=50).mean()
 
     # Normalize the volume
-    Volume_rolling_mean = data['Volume'].pct_change().rolling(window=40).mean()
+    Volume_rolling_mean = data['Volume'].rolling(window=15).mean().pct_change().rolling(window=50).mean()
     data['Volume_Norm'] = Volume_rolling_mean
 
     # Drop rows with NaN values after the calculations
@@ -43,7 +44,9 @@ def preprocess_data2(data):
     # data[feature_cols] = scaler.fit_transform(data[feature_cols])
 
     # Calculate the label: percentage change in closing price in 5 days
-    data['Pct_Future_Close'] = data['Pct_Change'].shift(-5)
+    data['MA_Close_Current'] = data['Close'].rolling(window=150).mean()  # Current 5-day moving average
+    data['MA_Close_Future'] = data['Close'].shift(-15).rolling(window=150).mean()  # Future 5-day moving average
+    data['Pct_Future_Close'] = ((data['MA_Close_Future'] - data['MA_Close_Current']) / data['MA_Close_Current'])
 
     # Drop rows with NaN values after standardization
     data = data.dropna()
@@ -103,37 +106,67 @@ class BiLSTM1(nn.Module):
         self.hidden_size = hidden_size
         self.num_layers = num_layers
 
-        # LSTM layers
-        self.lstm1 = nn.LSTM(input_size, hidden_size, num_layers, batch_first=True, bidirectional=True)
+        # FC layer
+        self.fc1 = nn.Linear(input_size, input_size)
 
-        # # Dropout to prevent overfitting
-        # self.dropout = nn.Dropout(p=0.3)  # Dropout with a probability of 30%
+        # LSTM layers
+        self.lstm1 = nn.LSTM(input_size, hidden_size, num_layers, batch_first=True, bidirectional=False)
+
+        # Dropout to prevent overfitting
+        self.dropout = nn.Dropout(p=0.3)  # Dropout with a probability of 30%
 
         # Fully connected layers
         self.fc = nn.Sequential(
+            # nn.ELU(),
+            nn.Linear(hidden_size * len(seq_lengths), hidden_size * len(seq_lengths)),
             nn.LeakyReLU(),
-            nn.Linear(hidden_size * 2 * len(seq_lengths), output_size * 64),
-            nn.ReLU(),
-            nn.Linear(output_size * 64, output_size * 8),
-            # self.dropout,  # Dropout before final layer
-            nn.ReLU(),
-            nn.Linear(output_size * 8, output_size)
+            nn.Linear(hidden_size * len(seq_lengths), hidden_size * len(seq_lengths)),
+            nn.LeakyReLU(),
+            nn.Linear(hidden_size * len(seq_lengths), output_size),
+
+
+            # nn.Linear(hidden_size * 2 * len(seq_lengths), output_size * 64),
+            # nn.LeakyReLU(),
+            # nn.Linear(output_size * 64, output_size ) #* 8),
+            # # self.dropout,  # Dropout before final layer
+            # # nn.LeakyReLU(),
+            # # nn.Linear(output_size * 8, output_size)
         )
 
     def forward(self, x):
-        lstm_out, _ = self.lstm1(x[0])
-        # lstm_out = self.dropout(lstm_out)  # Apply dropout
+        hidden = (torch.rand(self.num_layers, x[0].size(0), self.hidden_size).to(x[0].device),
+                  torch.rand(self.num_layers, x[0].size(0), self.hidden_size).to(x[0].device))
+        # FC layer
+        x = self.fc1(x[0])
+
+        lstm_out, _ = self.lstm1(x, hidden)  # Forward pass through LSTM layer
+        lstm_out = self.dropout(lstm_out)  # Apply dropout
+
         output = self.fc(lstm_out[:, -1, :])
+
         return output
 
 
 def train_model(model, train_loader, val_loader, device, lr, epochs):
-    optimizer = torch.optim.Adam(model.parameters(), lr=lr, weight_decay=1e-5)
-    criterion = nn.L1Loss()
+    optimizer = torch.optim.Adam(model.parameters(), lr=lr)#, weight_decay=1e-5)
+    # scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'min')
+    criterion = TrendAwareLoss(alpha=0.0)  # Adjust alpha to balance L1 and trend loss
+
+
+    model.eval()
+    val_loss = 0
+    with torch.no_grad():
+        for X_val, y_val in val_loader:
+            X_val = [x.to(device) for x in X_val]
+            y_val = y_val.float().to(device)
+            val_output = model(X_val)
+            val_loss += criterion(val_output, y_val).item()
+
+    val_loss /= len(val_loader)
+    best_val_loss = val_loss
+
+    # Train the model
     model.train()
-
-    best_val_loss = float('inf')
-
     for epoch in range(epochs):
         total_loss = 0
         for X, y in train_loader:
@@ -158,6 +191,7 @@ def train_model(model, train_loader, val_loader, device, lr, epochs):
 
         val_loss /= len(val_loader)
         print(f'Epoch [{epoch + 1}/{epochs}], Loss: {total_loss / len(train_loader):.8f}, Val Loss: {val_loss:.8f}')
+        # scheduler.step(val_loss)
 
         # Save the model if it improves on validation loss
         if val_loss < best_val_loss:
@@ -237,55 +271,56 @@ def plot_predictions_with_signals(predictions, labels, original_prices):
     # Plot actual stock prices
     plt.plot(original_prices, label='Stock Price', color='blue', alpha=0.6)
 
-    # Counters for correct predictions
-    correct_positive = 0
-    correct_negative = 0
-    total_positive = 0
-    total_negative = 0
+    # Confusion matrix components
+    tp, fp, tn, fn = 0, 0, 0, 0
 
-    # Track true positive and true negative indices for marking
+    # Track indices for true positives and true negatives for marking
     tp_indices = []
     tn_indices = []
 
-    # Indicate positive and negative predictions and calculate accuracy
+    # Iterate over predictions and labels
     for i in range(len(predictions)):
         pred_direction = 1 if predictions[i] >= 0 else -1
         label_direction = 1 if labels[i] >= 0 else -1
 
-        # Check if prediction matches label direction
-        if pred_direction == label_direction:
-            if pred_direction == 1:
-                correct_positive += 1
-                tp_indices.append(i)  # Track TP
-            else:
-                correct_negative += 1
-                tn_indices.append(i)  # Track TN
-
-        # Count total positives and negatives in labels
-        if label_direction == 1:
-            total_positive += 1
-        else:
-            total_negative += 1
+        # Update confusion matrix counts and track indices
+        if pred_direction == 1 and label_direction == 1:
+            tp += 1
+            tp_indices.append(i)
+        elif pred_direction == 1 and label_direction == -1:
+            fp += 1
+        elif pred_direction == -1 and label_direction == -1:
+            tn += 1
+            tn_indices.append(i)
+        elif pred_direction == -1 and label_direction == 1:
+            fn += 1
 
         # Plot green for positive, red for negative predictions
         color = 'green' if pred_direction == 1 else 'red'
         plt.axvline(i, color=color, alpha=0.2)
 
-    # Mark true positives and true negatives
+    # Mark true positives and true negatives on the plot
     plt.scatter(tp_indices, [original_prices[i] for i in tp_indices], color='lime', marker='o', label='True Positive', zorder=5)
     plt.scatter(tn_indices, [original_prices[i] for i in tn_indices], color='orange', marker='x', label='True Negative', zorder=5)
 
-    # Calculate accuracy percentages
-    positive_accuracy = (correct_positive / total_positive * 100) if total_positive > 0 else 0
-    negative_accuracy = (correct_negative / total_negative * 100) if total_negative > 0 else 0
+    # Calculate percentages for the confusion matrix
+    total = tp + fp + tn + fn
+    tp_pct = (tp / total * 100) if total > 0 else 0
+    fp_pct = (fp / total * 100) if total > 0 else 0
+    tn_pct = (tn / total * 100) if total > 0 else 0
+    fn_pct = (fn / total * 100) if total > 0 else 0
 
-    # Display accuracies on the plot
-    plt.title(f'Stock Price with Prediction Signals\n'
-              f'Positive Accuracy: {positive_accuracy:.2f}% | Negative Accuracy: {negative_accuracy:.2f}%')
+    # Add confusion matrix percentages as text on the plot
+    confusion_text = (f"Confusion Matrix (Percentages):\n"
+                      f"TP: {tp_pct:.2f}%, FP: {fp_pct:.2f}%\n"
+                      f"TN: {tn_pct:.2f}%, FN: {fn_pct:.2f}%")
+    plt.text(0.02, 0.95, confusion_text, transform=plt.gca().transAxes,
+             fontsize=12, bbox=dict(facecolor='white', alpha=0.7))
+
+    # Add overall plot title
+    plt.title(f'Stock Price with Prediction Signals')
     plt.legend()
     plt.show()
-
-
 
 
 def load_model(model, path):
@@ -295,23 +330,23 @@ def load_model(model, path):
 
 if __name__ == "__main__":
     # Example configuration and data loading
-    seq_lengths = [30]  # Sequence lengths for LSTMs
+    seq_lengths = [24]  # Sequence lengths for LSTMs
     input_size = 5  # input features: Volume_Norm, Pct_Change and Pct_open, Pct_low, Pct_High
     hidden_size = 128
-    num_layers = 2
+    num_layers = 6
     output_size = 1  # Predict price change in 5 days
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    lr = 0.0001
-    epochs = 2000
-    batch_size = 4
+    lr = 0.001
+    epochs = 10
+    batch_size = 12
 
-    # model_path = None
-    model_path = "best_model.pt" # None if you want to train the model
+    model_path = None
+    # model_path = "best_model.pt" # None if you want to train the model
 
     # Load and preprocess data
     # ticker = "AAPL"
     ticker = "JPM"
-    start_date = "2007-01-01"
+    start_date = "2000-01-01"
     end_date = "2023-01-01"
 
     # Load and preprocess data

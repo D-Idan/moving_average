@@ -23,6 +23,7 @@ def moving_average_strategy(short_window=20, long_window=50, sides="both"):
 
         # Calculate the slope of the long moving average and volume
         SMA_Long_Slope = SMA_Long.diff()
+        SMA_Short_Slope = SMA_Short.diff()
         volume_slope = data_s["Volume"].rolling(window=5).mean().diff()
 
         min_length = min(len(SMA_Short), len(SMA_Long), len(SMA_Long_Slope), len(volume_slope))
@@ -32,8 +33,8 @@ def moving_average_strategy(short_window=20, long_window=50, sides="both"):
         volume_slope = volume_slope[-min_length:]
 
         # Determine crossover conditions
-        long_condition = (SMA_Short > SMA_Long) & (SMA_Long_Slope > 0)
-        short_condition = (SMA_Short < SMA_Long) & (SMA_Long_Slope < 0)
+        long_condition = (SMA_Short > SMA_Long) & (SMA_Long_Slope > 0)  # & (volume_slope > 0)
+        short_condition = (SMA_Short < SMA_Long) & (SMA_Long_Slope < 0) # & (volume_slope < 0)
         volume_positive = volume_slope > 0
 
         # Initialize position signals

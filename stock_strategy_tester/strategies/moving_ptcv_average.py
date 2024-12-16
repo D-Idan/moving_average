@@ -30,9 +30,11 @@ def ptcv_strategy(short_window=20, long_window=80, sides="both"):
         SMA_Short = ptcv_Short[-min_length:]
         SMA_Long = ptcv_Long[-min_length:]
 
+        # long diff
+        long_diff = data_s["Close"].rolling(window=fast_window).mean().diff()
         # Determine crossover conditions
-        long_condition = (SMA_Short > SMA_Long)   & (ptcv_diff > 0)
-        short_condition = (SMA_Short < SMA_Long)   & (ptcv_diff < 0)
+        long_condition = (SMA_Short > SMA_Long)   & (ptcv_diff > 0) & (long_diff > 0)
+        short_condition = (SMA_Short < SMA_Long)   & (ptcv_diff < 0) & (long_diff < 0)
 
         # Initialize position signals
         position = pd.Series(0, index=data_s.index)

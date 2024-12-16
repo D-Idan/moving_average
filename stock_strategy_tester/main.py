@@ -8,6 +8,7 @@ from strategies.ichimoku_cloud_strategy import ichimoku_cloud_strategy
 from strategies.mean_reversion import mean_reversion_strategy
 from strategies.moving_average import moving_average_strategy
 from strategies.moving_ptcv_average import ptcv_strategy
+from strategies.moving_vwap import moving_vwap_strategy
 from utils.plotter import plot_benchmark_with_positions, plot_gains, plot_drawdown, plot_volatility, plot_heatmap, \
     plot_aggregate_heatmap
 from utils.plot_strategies import plot_moving_averages
@@ -23,9 +24,9 @@ def main():
     # ticker = "SPY"
     # ticker = "SHOP"
     # ticker = "BRK-B"
-    # ticker = "JPM"
+    ticker = "JPM"
     # ticker = "BAC"
-    ticker = "VYM"
+    # ticker = "VYM"
     # ticker = "LUMI.TA"
     # ticker = "BEZQ.TA"
     # ticker = "TSLA"
@@ -39,11 +40,12 @@ def main():
     backtester = Backtester(data, initial_balance=config.INITIAL_BALANCE, transaction_cost=config.TRANSACTION_COST)
 
     # # Run the backtest for one combination
-    # strategy = moving_average_strategy(short_window=40, long_window=105)
+    # strategy = moving_average_strategy(short_window=15, long_window=150)
+    strategy = moving_vwap_strategy(short_window=15, long_window=150)
     # strategy = exponential_moving_average_strategy(short_window=10, long_window=13)
     # strategy = ichimoku_cloud_strategy(short_window=50, long_window=70) #50/70
     # strategy = mean_reversion_strategy( window=116, num_std_dev=3, sides="both")
-    strategy = ptcv_strategy(short_window=80, long_window=100, sides="both")
+    # strategy = ptcv_strategy(short_window=80, long_window=100, sides="both")
 
 
     # run_oneSETvalues_backtest(backtester, config, strategy_tested=strategy)
@@ -53,20 +55,21 @@ def main():
 
     ########################################################## Multiple values ##########################################################
     # # # # Define the range of moving average periods to test
-    periods_fast = range(1, 10, 1)
-    periods_slow = range(1, 10, 1)
+    periods_fast = range(5, 300, 10)
+    periods_slow = range(5, 300, 10)
     # periods_slow = [x / 10 for x in range(1, 40, 1)]
     #
     # strategy = moving_average_strategy
     # strategy = exponential_moving_average_strategy
     # strategy = ichimoku_cloud_strategy
     # strategy = mean_reversion_strategy
-    strategy = arma_strategy
-    # strategy = ptcv_strategy
+    # strategy = arma_strategy
+    strategy = ptcv_strategy
+    strategy = moving_vwap_strategy
     # #
     # # Run the backtest for each combination of moving average periods - Yearly
     run_Nvalues_backtest(data, periods_fast, periods_slow, backtester, config,
-                                             strategy_tested=strategy, bin_size=1)
+                                             strategy_tested=strategy, bin_size=10)
 
 
 
