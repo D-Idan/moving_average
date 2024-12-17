@@ -109,7 +109,7 @@ def generate_report_backtest(data, risk_free_rate=0.0):
     print("\nBacktesting Report:")
     print(f"Total Return (%): {100 * (data["Position"] * data["Daily_Returns"]).sum():.2f}")
     print(f"Long Return (%): {100 * (data["Signal_long"] * data["Daily_Returns"]).sum():.2f}")
-    print(f"Short Return (%): {100 * (data["Signal_short"] * data["Daily_Returns"]).sum():.2f}")
+    print(f"Short Return (%): {-100 * (data["Signal_short"] * data["Daily_Returns"]).sum():.2f}")
     print(f"CAGR (Compound Annual Growth Rate) (%): {100 * calculate_cagr(data_Sys_Ret):.2f}")
     print(f"Max Drawdown: {calculate_max_drawdown(data_Sys_Ret):.2f}")
     print(f"Time in Market: {100 * np.count_nonzero(data['Position']) / len(data):.2f}%")

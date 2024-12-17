@@ -3,6 +3,7 @@ import pandas as pd
 import yfinance as yf
 from backtester import Backtester
 from strategies.arima import arma_strategy
+from strategies.emvwap import emvwap_strategy
 from strategies.exponential_moving_average import exponential_moving_average_strategy
 from strategies.ichimoku_cloud_strategy import ichimoku_cloud_strategy
 from strategies.mean_reversion import mean_reversion_strategy
@@ -21,6 +22,7 @@ import tqdm
 def main():
     # Load sample data
     # ticker = "AAPL"
+    # ticker = "META"
     # ticker = "SPY"
     # ticker = "SHOP"
     # ticker = "BRK-B"
@@ -41,14 +43,15 @@ def main():
 
     # # Run the backtest for one combination
     # strategy = moving_average_strategy(short_window=15, long_window=150)
-    strategy = moving_vwap_strategy(short_window=15, long_window=150)
+    # strategy = moving_vwap_strategy(short_window=15, long_window=150)
     # strategy = exponential_moving_average_strategy(short_window=10, long_window=13)
     # strategy = ichimoku_cloud_strategy(short_window=50, long_window=70) #50/70
     # strategy = mean_reversion_strategy( window=116, num_std_dev=3, sides="both")
     # strategy = ptcv_strategy(short_window=80, long_window=100, sides="both")
+    strategy = emvwap_strategy(short_window=6, long_window=269, alfa_short=138, alfa_long=185)
 
 
-    # run_oneSETvalues_backtest(backtester, config, strategy_tested=strategy)
+    run_oneSETvalues_backtest(backtester, config, strategy_tested=strategy)
 
     # 144 / 112 | 15 / 5
 
@@ -64,12 +67,13 @@ def main():
     # strategy = ichimoku_cloud_strategy
     # strategy = mean_reversion_strategy
     # strategy = arma_strategy
-    strategy = ptcv_strategy
-    strategy = moving_vwap_strategy
+    # strategy = ptcv_strategy
+    # strategy = moving_vwap_strategy
+    strategy = emvwap_strategy
     # #
-    # # Run the backtest for each combination of moving average periods - Yearly
-    run_Nvalues_backtest(data, periods_fast, periods_slow, backtester, config,
-                                             strategy_tested=strategy, bin_size=10)
+    # # # Run the backtest for each combination of moving average periods - Yearly
+    # run_Nvalues_backtest(data, periods_fast, periods_slow, backtester, config,
+    #                                          strategy_tested=strategy, bin_size=10)
 
 
 
