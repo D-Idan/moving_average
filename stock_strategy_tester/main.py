@@ -33,7 +33,7 @@ def main():
     # ticker = "BEZQ.TA"
     # ticker = "TSLA"
     start_date = "2017-01-01"
-    end_date = "2024-01-01"
+    end_date = "2021-01-01"
     # Load and preprocess data
     raw_data = load_data(ticker, start_date, end_date)
     data = preprocess_data(raw_data)

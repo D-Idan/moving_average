@@ -6,7 +6,7 @@ from backtester.performance import generate_report_backtest
 
 def emvwap_strategy(short_window=63, long_window=63*4, alfa_short=50, alfa_long=50, sides="long"):
 
-    def strategy(data_s, alfa_short=alfa_short, alfa_long=alfa_long, short_window=short_window, long_window=long_window):
+    def strategy(data_s, alfa_short=alfa_short, alfa_long=alfa_long, short_window=short_window, long_window=long_window, return_line=False):
         """
         Generate buy/sell signals based on Exponential Moving VWAP (EMVWAP) crossovers.
         """
@@ -50,13 +50,13 @@ def emvwap_strategy(short_window=63, long_window=63*4, alfa_short=50, alfa_long=
 
         # Long condition
         alfa_long = alfa_long / 100       # LONG 0.65
-        EMVWAP_long = alfa_long * EMVWAP_Short + (1 - alfa_long) * EMVWAP_Long
-        long_condition = price > EMVWAP_long
+        EMVWAP_long_calc = alfa_long * EMVWAP_Short + (1 - alfa_long) * EMVWAP_Long
+        long_condition = price > EMVWAP_long_calc
 
         # Short condition
         alfa_short = alfa_short / 100       # SHORT 0.65
-        EMVWAP_short = alfa_short * EMVWAP_Short + (1 - alfa_short) * EMVWAP_Long
-        short_condition = price < EMVWAP_short
+        EMVWAP_short_calc = alfa_short * EMVWAP_Short + (1 - alfa_short) * EMVWAP_Long
+        short_condition = price < EMVWAP_short_calc
 
         # Ensure conditions last at least # days
         days = 2
@@ -105,6 +105,10 @@ def emvwap_strategy(short_window=63, long_window=63*4, alfa_short=50, alfa_long=
             .dropna()
             .astype(int)
         )
+
+        if return_line:
+            lines = {'long': EMVWAP_long_calc, 'short': EMVWAP_short_calc}
+            return data_s["long_signal"], data_s["short_signal"], lines
 
         return data_s["long_signal"], data_s["short_signal"]
 
