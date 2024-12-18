@@ -93,7 +93,12 @@ if __name__ == "__main__":
 
     # Load sample data
     ticker = "META"
+    ticker = "SQ"
+    ticker = "SPMO"
+    ticker = "spy"
+    ticker = "U"
     # ticker = "JPM"
+
     start_date = "2010-01-01"
     # Today date
     # end_date = "2021-01-01"
