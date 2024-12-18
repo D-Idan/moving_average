@@ -92,8 +92,8 @@ if __name__ == "__main__":
     from data.data_loader import load_data, preprocess_data
 
     # Load sample data
-    # ticker = "META"
-    ticker = "JPM"
+    ticker = "META"
+    # ticker = "JPM"
     start_date = "2010-01-01"
     # Today date
     # end_date = "2021-01-01"
@@ -103,7 +103,7 @@ if __name__ == "__main__":
     data.index = pd.to_datetime(data["Date"])
 
     # Strategy
-    params = {'short_window': 42, 'long_window': 306, 'alfa_short': 17, 'alfa_long': 65}
+    params = {'short_window': 976, 'long_window': 131, 'alfa_short': 88, 'alfa_long': 30, 'volume_power_short': 98, 'volume_power_long': 103}
     strategy = emvwap_strategy(**params)
 
     # Initialize backtester

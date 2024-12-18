@@ -4,7 +4,7 @@ import pandas as pd
 from backtester.performance import generate_report_backtest
 
 
-def emvwap_strategy(short_window=63, long_window=63*4, alfa_short=50, alfa_long=50, sides="long"):
+def emvwap_strategy(short_window=63, long_window=63*4, alfa_short=50, alfa_long=50, volume_power_short=100, volume_power_long=100, sides="long"):
 
     def strategy(data_s, alfa_short=alfa_short, alfa_long=alfa_long, short_window=short_window, long_window=long_window, return_line=False):
         """
@@ -22,16 +22,17 @@ def emvwap_strategy(short_window=63, long_window=63*4, alfa_short=50, alfa_long=
             return rolling_price_volume / rolling_volume
 
         # Helper: Calculate EM-VWAP
-        def calculate_em_vwap(span):
+        def calculate_em_vwap(span, volume_power=2):
+            volume_power = volume_power / 100
             # price_volume = (data_s["High"] + data_s["Low"] + data_s["Close"]) / 3 * data_s["Volume"]
-            price_volume = data_s["Open"] * data_s["Volume"]
+            price_volume = data_s["Low"] * data_s["Volume"] ** volume_power
             ewma_price_volume = price_volume.ewm(span=span, adjust=False).mean()
             ewma_volume = data_s["Volume"].ewm(span=span, adjust=False).mean()
-            return ewma_price_volume / ewma_volume
+            return ewma_price_volume / ewma_volume ** volume_power
 
         # Calculate indicators
-        EMVWAP_Short = calculate_em_vwap(short_window)
-        EMVWAP_Long = calculate_em_vwap(long_window)
+        EMVWAP_Short = calculate_em_vwap(short_window, volume_power=volume_power_short)
+        EMVWAP_Long = calculate_em_vwap(long_window, volume_power=volume_power_long)
 
         # Detect where the slope of EMVWAP_Long changes from positive to negative
         slope_long_emvwap = EMVWAP_Long.diff()
@@ -51,7 +52,7 @@ def emvwap_strategy(short_window=63, long_window=63*4, alfa_short=50, alfa_long=
         # Long condition
         alfa_long = alfa_long / 100       # LONG 0.65
         EMVWAP_long_calc = alfa_long * EMVWAP_Short + (1 - alfa_long) * EMVWAP_Long
-        long_condition = price > EMVWAP_long_calc
+        long_condition = (price > EMVWAP_long_calc) # & slope_long_emvwap > 0
 
         # Short condition
         alfa_short = alfa_short / 100       # SHORT 0.65

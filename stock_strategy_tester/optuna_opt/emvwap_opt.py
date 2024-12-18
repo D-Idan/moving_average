@@ -22,10 +22,12 @@ data.index = pd.to_datetime(data["Date"])
 # Objective function for Optuna
 def objective(trial):
     # Define hyperparameters to optimize
-    short_window = trial.suggest_int("short_window", 20, 250)  # Range for short_window
-    long_window = trial.suggest_int("long_window", 20, 600)  # Range for long_window
+    short_window = trial.suggest_int("short_window", 5, 1400)  # Range for short_window
+    long_window = trial.suggest_int("long_window", 5, 500)  # Range for long_window
     alfa_short = trial.suggest_int("alfa_short", 1, 100)  # Range for alfa_short (percentage)
     alfa_long = trial.suggest_int("alfa_long", 1, 100)  # Range for alfa_long (percentage)
+    volume_power_short = trial.suggest_int("volume_power_short", 90, 110)  # Range for volume_power_short
+    volume_power_long = trial.suggest_int("volume_power_long", 90, 110)  # Range for volume_power_long
 
     # Create the strategy with sampled hyperparameters
     strategy = emvwap_strategy(
@@ -33,6 +35,8 @@ def objective(trial):
         long_window=long_window,
         alfa_short=alfa_short,
         alfa_long=alfa_long,
+        volume_power_short=volume_power_short,
+        volume_power_long=volume_power_long,
         sides="long",
     )
 
@@ -41,16 +45,16 @@ def objective(trial):
     results = backtester.run(strategy)
 
     # Calculate total return as the optimization target
-    # loss = profit_loss(results["data"])
-    # loss = profit_time_loss(results["data"], w_profit=0.95, w_time=0.05)
-    loss = profit_ratio_loss(results["data"], w_profit=0.6, w_time=0.1, w_ratio=0.3)
+    loss = profit_loss(results["data"])
+    # # loss = profit_time_loss(results["data"], w_profit=0.95, w_time=0.05)
+    # loss = profit_ratio_loss(results["data"], w_profit=0.8, w_time=0.05, w_ratio=0.1, w_entry=0.05)
 
     return loss
 
 if __name__ == "__main__":
     # Create an Optuna study
     study = optuna.create_study(direction="minimize")
-    study.optimize(objective, n_trials=200)
+    study.optimize(objective, n_trials=2000)
 
     # Print the best hyperparameters
     print("\nBest hyperparameters:")

@@ -1,4 +1,6 @@
 # main.py
+from datetime import datetime
+
 import pandas as pd
 import yfinance as yf
 from backtester import Backtester
@@ -33,7 +35,8 @@ def main():
     # ticker = "BEZQ.TA"
     # ticker = "TSLA"
     start_date = "2017-01-01"
-    end_date = "2021-01-01"
+    # Todays date
+    end_date = datetime.now().strftime("%Y-%m-%d")
     # Load and preprocess data
     raw_data = load_data(ticker, start_date, end_date)
     data = preprocess_data(raw_data)
@@ -48,8 +51,9 @@ def main():
     # strategy = ichimoku_cloud_strategy(short_window=50, long_window=70) #50/70
     # strategy = mean_reversion_strategy( window=116, num_std_dev=3, sides="both")
     # strategy = ptcv_strategy(short_window=80, long_window=100, sides="both")
-    strategy = emvwap_strategy(short_window=6, long_window=269, alfa_short=138, alfa_long=185)
+    params = {'short_window': 15, 'long_window': 381, 'alfa_short': 284, 'alfa_long': 223}
 
+    strategy = emvwap_strategy(**params)
 
     run_oneSETvalues_backtest(backtester, config, strategy_tested=strategy)
 

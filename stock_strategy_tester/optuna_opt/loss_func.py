@@ -36,13 +36,14 @@ def profit_time_loss(data, w_profit=0.7, w_time=0.3):
     return loss
 
 
-def profit_ratio_loss(data, w_profit=0.5, w_time=0.3, w_ratio=0.2):
+def profit_ratio_loss(data, w_profit=0.5, w_time=0.3, w_ratio=0.2, w_entry=0.1):
     """
     Custom loss function to maximize profitable trade ratio, profit, and minimize time in the market.
     :param data: DataFrame containing backtesting results.
     :param w_profit: Weight for the profit term (higher is better).
     :param w_time: Weight for the time in market penalty (lower is better).
     :param w_ratio: Weight for the profitable trades ratio (higher is better).
+    :param w_entry: Weight for the entry to long position (lower is better).
     :return: Loss value (lower is better).
     """
 
@@ -82,13 +83,16 @@ def profit_ratio_loss(data, w_profit=0.5, w_time=0.3, w_ratio=0.2):
     if num_unprofitable_trades > 0:
         profitable_ratio = num_profitable_trades / num_unprofitable_trades
     else:
-        profitable_ratio = float("inf")  # Infinite ratio if no unprofitable trades
+        profitable_ratio = -float("inf")  # Infinite ratio if no unprofitable trades
 
     # Normalize metrics
     profit_score = total_profit / 100  # Adjust scaling as needed
     time_penalty = time_in_market  # This is already normalized (0 to 1)
 
+    # short_signal touch lows for entrance to long position
+    entry_long = abs(data["short_signal"] - data["Low"]).sum() / (len(data) * 100)
+
     # Calculate loss
-    loss = -w_profit * profit_score + w_time * time_penalty - w_ratio * profitable_ratio
+    loss = -w_profit * profit_score + w_time * time_penalty - w_ratio * profitable_ratio - w_entry * entry_long
 
     return loss
