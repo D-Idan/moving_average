@@ -66,7 +66,11 @@ def profit_ratio_loss(data, w_profit=0.5, w_time=0.3, w_ratio=0.2, w_entry=0.1):
     trade_results = data.groupby("Trade_ID").agg(
         {"Position": "first", "Cumulative_Returns": "last", "Open": "first"}
     )
-    trade_results["Profitable"] = trade_results["Cumulative_Returns"] > 0
+
+    trade_results["Profitable"] = (
+            (trade_results["Position"] == 1) & (trade_results["Cumulative_Returns"] > 0) |  # Longs: Positive returns
+            (trade_results["Position"] == -1) & (trade_results["Cumulative_Returns"] < 0)  # Shorts: Negative returns
+    )
 
     # Broadcast profitability back to the original DataFrame
     data["Profitable"] = data["Trade_ID"].map(trade_results["Profitable"])

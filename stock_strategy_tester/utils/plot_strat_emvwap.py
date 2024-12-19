@@ -30,7 +30,10 @@ def plot_strategy_results(data, lines, results):
     trade_results = data.groupby("Trade_ID").agg(
         {"Position": "first", "Cumulative_Returns": "last", "Open": "first"}
     )
-    trade_results["Profitable"] = trade_results["Cumulative_Returns"] > 0
+    trade_results["Profitable"] = (
+            (trade_results["Position"] == 1) & (trade_results["Cumulative_Returns"] > 0) |  # Longs: Positive returns
+            (trade_results["Position"] == -1) & (trade_results["Cumulative_Returns"] < 0)  # Shorts: Negative returns
+    )
 
     # Broadcast profitability back to the original DataFrame
     data["Profitable"] = data["Trade_ID"].map(trade_results["Profitable"])
@@ -94,10 +97,10 @@ if __name__ == "__main__":
     # Load sample data
     # ticker = "META"
     # ticker = "SQ"
-    ticker = "SPMO"
+    # ticker = "SPMO"
     # ticker = "spy"
     # ticker = "U"
-    # ticker = "JPM"
+    ticker = "JPM"
 
     start_date = "2010-01-01"
     # Today date
@@ -108,7 +111,7 @@ if __name__ == "__main__":
     data.index = pd.to_datetime(data["Date"])
 
     # Strategy
-    params = {'short_window': 20, 'long_window': 63, 'alfa_short': 50, 'alfa_long': 50, 'volume_power_short': 100, 'volume_power_long': 100}
+    params = {'short_window': 103, 'long_window': 99, 'alfa_short': 77, 'alfa_long': 57, 'volume_power_short': 84, 'volume_power_long': 97}
     # params = {'short_window': 976, 'long_window': 131, 'alfa_short': 88, 'alfa_long': 30, 'volume_power_short': 98, 'volume_power_long': 103}
     strategy = emvwap_strategy(**params)
 

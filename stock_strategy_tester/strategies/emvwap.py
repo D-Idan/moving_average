@@ -14,12 +14,13 @@ def emvwap_strategy(short_window=63, long_window=63*4, alfa_short=50, alfa_long=
             raise ValueError("Input data must contain 'Close', 'Volume', 'High', and 'Low' columns.")
 
         # Helper: Calculate VWAP and Moving VWAP (MVWAP)
-        def calculate_mvwav(window):
+        def calculate_mvwav(window, volume_power=100):
+            volume_power = volume_power / 100
             # price_volume = (data_s["High"] + data_s["Low"] + data_s["Close"]) / 3 * data_s["Volume"]
-            price_volume = data_s["Open"] * data_s["Volume"]
+            price_volume = data_s["Open"] * data_s["Volume"] ** volume_power
             rolling_price_volume = price_volume.rolling(window=window).sum()
             rolling_volume = data_s["Volume"].rolling(window=window).sum()
-            return rolling_price_volume / rolling_volume
+            return rolling_price_volume / rolling_volume ** volume_power
 
         # Helper: Calculate EM-VWAP
         def calculate_em_vwap(span, volume_power=100):
@@ -32,7 +33,7 @@ def emvwap_strategy(short_window=63, long_window=63*4, alfa_short=50, alfa_long=
 
         # Calculate indicators
         EMVWAP_Short = calculate_em_vwap(short_window, volume_power=volume_power_short)
-        EMVWAP_Long = calculate_em_vwap(long_window, volume_power=volume_power_long)
+        EMVWAP_Long = calculate_mvwav(long_window, volume_power=volume_power_long)
 
         # Detect where the slope of EMVWAP_Long changes from positive to negative
         slope_long_emvwap = EMVWAP_Long.diff()
@@ -56,8 +57,8 @@ def emvwap_strategy(short_window=63, long_window=63*4, alfa_short=50, alfa_long=
 
         # Short condition
         alfa_short = alfa_short / 100       # SHORT 0.65
-        EMVWAP_short_calc = alfa_short * EMVWAP_Short + (1 - alfa_short) * EMVWAP_Long
-        short_condition = price < EMVWAP_short_calc
+        EMVWAP_short_calc = alfa_short * EMVWAP_Long + (1 - alfa_short) * EMVWAP_Short
+        short_condition = (price < EMVWAP_short_calc)
 
         # Ensure conditions last at least # days
         days = 2
@@ -72,12 +73,12 @@ def emvwap_strategy(short_window=63, long_window=63*4, alfa_short=50, alfa_long=
         short_entry = short_condition
         position.loc[long_entry] = 1  # Long entry
         position.loc[short_entry] = -1  # Short entry
-        position.loc[(long_entry == True) & (short_entry == True)] = 0  # No position if both are true
 
         # Forward-fill the positions to maintain them until the next change in the condition
         position = position.replace(0, np.nan)
-        position.loc[(long_condition == False) & (short_condition == False)] = 0
         position = position.ffill().fillna(0)
+        position.loc[(long_condition == False) & (short_condition == False)] = 0 # No position if both are false
+        position.loc[(long_entry == True) & (short_entry == True)] = 0  # No position if both are true
 
         # Remove invalid sides
         if sides == "long":
