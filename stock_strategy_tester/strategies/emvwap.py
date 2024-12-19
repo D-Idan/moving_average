@@ -6,7 +6,7 @@ from backtester.performance import generate_report_backtest
 
 def emvwap_strategy(short_window=63, long_window=63*4, alfa_short=50, alfa_long=50, volume_power_short=100, volume_power_long=100, sides="long"):
 
-    def strategy(data_s, alfa_short=alfa_short, alfa_long=alfa_long, short_window=short_window, long_window=long_window, return_line=False):
+    def strategy(data_s, alfa_short=alfa_short, alfa_long=alfa_long, short_window=short_window, long_window=long_window, volume_power_short=volume_power_short, volume_power_long=volume_power_long, return_line=False):
         """
         Generate buy/sell signals based on Exponential Moving VWAP (EMVWAP) crossovers.
         """
@@ -22,13 +22,13 @@ def emvwap_strategy(short_window=63, long_window=63*4, alfa_short=50, alfa_long=
             return rolling_price_volume / rolling_volume
 
         # Helper: Calculate EM-VWAP
-        def calculate_em_vwap(span, volume_power=2):
+        def calculate_em_vwap(span, volume_power=100):
             volume_power = volume_power / 100
             # price_volume = (data_s["High"] + data_s["Low"] + data_s["Close"]) / 3 * data_s["Volume"]
-            price_volume = data_s["Low"] * data_s["Volume"] ** volume_power
+            price_volume = data_s["Low"] * (data_s["Volume"] ** volume_power)
             ewma_price_volume = price_volume.ewm(span=span, adjust=False).mean()
             ewma_volume = data_s["Volume"].ewm(span=span, adjust=False).mean()
-            return ewma_price_volume / ewma_volume ** volume_power
+            return ewma_price_volume / (ewma_volume ** volume_power)
 
         # Calculate indicators
         EMVWAP_Short = calculate_em_vwap(short_window, volume_power=volume_power_short)

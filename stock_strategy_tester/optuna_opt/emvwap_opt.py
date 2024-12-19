@@ -11,13 +11,26 @@ from strategies.emvwap import emvwap_strategy
 
 # Load sample data
 # ticker = "META"
-ticker = "JPM"
+ticker = "SPMO"
+# ticker = "JPM"
 start_date = "2005-01-01"
 end_date = "2021-01-01"
 # end_date = datetime.now().strftime("%Y-%m-%d")
 raw_data = load_data(ticker, start_date, end_date)
 data = preprocess_data(raw_data)
 data.index = pd.to_datetime(data["Date"])
+
+# Define initial trial parameters
+initial_params = [
+    {"short_window": 1300, "long_window": 23, "alfa_short": 56, "alfa_long": 36, "volume_power_short": 110, "volume_power_long": 93},
+    {"short_window": 976, "long_window": 131, "alfa_short": 88, "alfa_long": 30, "volume_power_short": 98, "volume_power_long": 103}
+]
+
+# Function to add initial trials
+def add_initial_trials(study, initial_params):
+    for params in initial_params:
+        study.enqueue_trial(params)
+
 
 # Objective function for Optuna
 def objective(trial):
@@ -45,16 +58,21 @@ def objective(trial):
     results = backtester.run(strategy)
 
     # Calculate total return as the optimization target
-    loss = profit_loss(results["data"])
+    # loss = profit_loss(results["data"])
     # # loss = profit_time_loss(results["data"], w_profit=0.95, w_time=0.05)
-    # loss = profit_ratio_loss(results["data"], w_profit=0.8, w_time=0.05, w_ratio=0.1, w_entry=0.05)
+    loss = profit_ratio_loss(results["data"], w_profit=0.89, w_time=0.05, w_ratio=0.05, w_entry=0.01)
 
     return loss
 
 if __name__ == "__main__":
     # Create an Optuna study
     study = optuna.create_study(direction="minimize")
-    study.optimize(objective, n_trials=2000)
+
+    # Add initial trials
+    add_initial_trials(study, initial_params)
+
+    # Optimize the study
+    study.optimize(objective, n_trials=4000)
 
     # Print the best hyperparameters
     print("\nBest hyperparameters:")
