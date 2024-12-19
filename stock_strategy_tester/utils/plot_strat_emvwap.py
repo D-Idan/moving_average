@@ -111,8 +111,11 @@ if __name__ == "__main__":
     data.index = pd.to_datetime(data["Date"])
 
     # Strategy
-    params = {'short_window': 103, 'long_window': 99, 'alfa_short': 77, 'alfa_long': 57, 'volume_power_short': 84, 'volume_power_long': 97}
-    # params = {'short_window': 976, 'long_window': 131, 'alfa_short': 88, 'alfa_long': 30, 'volume_power_short': 98, 'volume_power_long': 103}
+    # params = {'short_window': 64, 'long_window': 64*4, 'alfa_short': 100, 'alfa_long': 100, 'volume_power_short': 100, 'volume_power_long': 100}
+    # params = {'short_window': 5, 'long_window': 470, 'alfa_short': 1, 'alfa_long': 3, 'volume_power_short': 160, 'volume_power_long': 47}
+    params = {'short_window': 426, 'long_window': 5, 'alfa_short': 105, 'alfa_long': -14, 'volume_power_short': 166, 'volume_power_long': 71}
+    params = {'short_window': 426, 'long_window': 5, 'alfa_short': 105, 'alfa_long': -14, 'volume_power_short': 166, 'volume_power_long': 71}
+    params['next_day_execution'] = True
     strategy = emvwap_strategy(**params)
 
     # Initialize backtester
@@ -123,6 +126,8 @@ if __name__ == "__main__":
     # Add signals to the data
     data["long_signal"] = long_signal
     data["short_signal"] = short_signal
+
+    # Shift signals back
 
     # Run the backtest
     results = backtester.run(strategy)

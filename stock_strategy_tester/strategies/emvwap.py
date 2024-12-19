@@ -4,9 +4,10 @@ import pandas as pd
 from backtester.performance import generate_report_backtest
 
 
-def emvwap_strategy(short_window=63, long_window=63*4, alfa_short=50, alfa_long=50, volume_power_short=100, volume_power_long=100, sides="long"):
+def emvwap_strategy(short_window=63, long_window=63*4, alfa_short=50, alfa_long=50, volume_power_short=100, volume_power_long=100, sides="long", next_day_execution=True):
 
-    def strategy(data_s, alfa_short=alfa_short, alfa_long=alfa_long, short_window=short_window, long_window=long_window, volume_power_short=volume_power_short, volume_power_long=volume_power_long, return_line=False):
+    def strategy(data_s, alfa_short=alfa_short, alfa_long=alfa_long, short_window=short_window, long_window=long_window,
+                 volume_power_short=volume_power_short, volume_power_long=volume_power_long, return_line=False, next_day_execution=next_day_execution):
         """
         Generate buy/sell signals based on Exponential Moving VWAP (EMVWAP) crossovers.
         """
@@ -33,7 +34,7 @@ def emvwap_strategy(short_window=63, long_window=63*4, alfa_short=50, alfa_long=
 
         # Calculate indicators
         EMVWAP_Short = calculate_em_vwap(short_window, volume_power=volume_power_short)
-        EMVWAP_Long = calculate_mvwav(long_window, volume_power=volume_power_long)
+        EMVWAP_Long = calculate_em_vwap(long_window, volume_power=volume_power_long)
 
         # Detect where the slope of EMVWAP_Long changes from positive to negative
         slope_long_emvwap = EMVWAP_Long.diff()
@@ -93,8 +94,9 @@ def emvwap_strategy(short_window=63, long_window=63*4, alfa_short=50, alfa_long=
         short_signal = (position == -1).astype(int)
 
         # Shift signals forward by one period for next-day execution
-        long_signal = long_signal.shift(1)
-        short_signal = short_signal.shift(1)
+        if next_day_execution:
+            long_signal = long_signal.shift(1)
+            short_signal = short_signal.shift(1)
 
         # Drop any rows where signals are NaN due to the shift
         data_s["long_signal"] = long_signal
