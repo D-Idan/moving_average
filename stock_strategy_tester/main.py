@@ -51,7 +51,7 @@ def main():
     # strategy = ichimoku_cloud_strategy(short_window=50, long_window=70) #50/70
     # strategy = mean_reversion_strategy( window=116, num_std_dev=3, sides="both")
     # strategy = ptcv_strategy(short_window=80, long_window=100, sides="both")
-    params = {'short_window': 15, 'long_window': 381, 'alfa_short': 284, 'alfa_long': 223}
+    params = {'short_window': 426, 'long_window': 5, 'alfa_short': 105, 'alfa_long': -14, 'volume_power_short': 166, 'volume_power_long': 71}
 
     strategy = emvwap_strategy(**params)
 

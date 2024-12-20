@@ -113,9 +113,10 @@ if __name__ == "__main__":
     # Strategy
     # params = {'short_window': 64, 'long_window': 64*4, 'alfa_short': 100, 'alfa_long': 100, 'volume_power_short': 100, 'volume_power_long': 100}
     # params = {'short_window': 5, 'long_window': 470, 'alfa_short': 1, 'alfa_long': 3, 'volume_power_short': 160, 'volume_power_long': 47}
-    params = {'short_window': 426, 'long_window': 5, 'alfa_short': 105, 'alfa_long': -14, 'volume_power_short': 166, 'volume_power_long': 71}
-    params = {'short_window': 426, 'long_window': 5, 'alfa_short': 105, 'alfa_long': -14, 'volume_power_short': 166, 'volume_power_long': 71}
+    params = {'short_window': 426, 'long_window': 5, 'alfa_short': 105, 'alfa_long': -14, 'volume_power_short': 166, 'volume_power_long': 71} # long
+    # params = {'short_window': 10, 'long_window': 164, 'alfa_short': -6, 'alfa_long': 74, 'volume_power_short': 113, 'volume_power_long': 139} # both sides
     params['next_day_execution'] = True
+    params['sides'] = "long"
     strategy = emvwap_strategy(**params)
 
     # Initialize backtester

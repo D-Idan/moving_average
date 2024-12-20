@@ -24,7 +24,8 @@ data.index = pd.to_datetime(data["Date"])
 initial_params = [
     {'short_window': 1000, 'long_window': 1000, 'alfa_short': 100, 'alfa_long': 100, 'volume_power_short': 100, 'volume_power_long': 100},
     {"short_window": 63, "long_window": 63*4, "alfa_short": 0, "alfa_long": 0, "volume_power_short": 100, "volume_power_long": 100},
-    {'short_window': 5, 'long_window': 470, 'alfa_short': 1, 'alfa_long': 3, 'volume_power_short': 160, 'volume_power_long': 47}
+    {'short_window': 5, 'long_window': 470, 'alfa_short': 1, 'alfa_long': 3, 'volume_power_short': 160, 'volume_power_long': 47},
+    {'short_window': 426, 'long_window': 5, 'alfa_short': 105, 'alfa_long': -14, 'volume_power_short': 166, 'volume_power_long': 71},
 ]
 
 # Function to add initial trials
@@ -61,7 +62,7 @@ def objective(trial):
     # Calculate total return as the optimization target
     # loss = profit_loss(results["data"])
     # # loss = profit_time_loss(results["data"], w_profit=0.95, w_time=0.05)
-    loss = profit_ratio_loss(results["data"], w_profit=0.98, w_time=0.00, w_ratio=0.0, w_entry=0.02)
+    loss = profit_ratio_loss(results["data"], w_profit=0.97, w_time=0.00, w_ratio=0.01, w_entry=0.02)
 
     return loss
 
@@ -73,7 +74,7 @@ if __name__ == "__main__":
     add_initial_trials(study, initial_params)
 
     # Optimize the study
-    study.optimize(objective, n_trials=2000)
+    study.optimize(objective, n_trials=20000)
 
     # Print the best hyperparameters
     print("\nBest hyperparameters:")
