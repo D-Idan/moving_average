@@ -26,6 +26,7 @@ initial_params = [
     {"short_window": 63, "long_window": 63*4, "alfa_short": 0, "alfa_long": 0, "volume_power_short": 100, "volume_power_long": 100},
     {'short_window': 5, 'long_window': 470, 'alfa_short': 1, 'alfa_long': 3, 'volume_power_short': 160, 'volume_power_long': 47},
     {'short_window': 426, 'long_window': 5, 'alfa_short': 105, 'alfa_long': -14, 'volume_power_short': 166, 'volume_power_long': 71},
+    {'short_window': 23, 'long_window': 467, 'alfa_short': -20, 'alfa_long': 141, 'volume_power_short': 133, 'volume_power_long': 223},
 ]
 
 # Function to add initial trials
@@ -38,11 +39,11 @@ def add_initial_trials(study, initial_params):
 def objective(trial):
     # Define hyperparameters to optimize
     short_window = trial.suggest_int("short_window", 10, 400)  # Range for short_window
-    long_window = trial.suggest_int("long_window", 10, 400)  # Range for long_window
+    long_window = trial.suggest_int("long_window", 10, 500)  # Range for long_window
     alfa_short = trial.suggest_int("alfa_short", -20, 120)  # Range for alfa_short (percentage)
-    alfa_long = trial.suggest_int("alfa_long", -20, 120)  # Range for alfa_long (percentage)
+    alfa_long = trial.suggest_int("alfa_long", -20, 200)  # Range for alfa_long (percentage)
     volume_power_short = trial.suggest_int("volume_power_short", 80, 150)  # Range for volume_power_short
-    volume_power_long = trial.suggest_int("volume_power_long", 80, 150)  # Range for volume_power_long
+    volume_power_long = trial.suggest_int("volume_power_long", 80, 250)  # Range for volume_power_long
 
     # Create the strategy with sampled hyperparameters
     strategy = emvwap_strategy(
@@ -74,7 +75,7 @@ if __name__ == "__main__":
     add_initial_trials(study, initial_params)
 
     # Optimize the study
-    study.optimize(objective, n_trials=20000)
+    study.optimize(objective, n_trials=2000)
 
     # Print the best hyperparameters
     print("\nBest hyperparameters:")
@@ -87,6 +88,8 @@ if __name__ == "__main__":
         long_window=best_params["long_window"],
         alfa_short=best_params["alfa_short"],
         alfa_long=best_params["alfa_long"],
+        volume_power_short=best_params["volume_power_short"],
+        volume_power_long=best_params["volume_power_long"],
         sides="long",
     )
 
