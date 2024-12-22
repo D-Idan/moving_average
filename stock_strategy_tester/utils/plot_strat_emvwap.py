@@ -113,7 +113,7 @@ if __name__ == "__main__":
     # Strategy
     # params = {'short_window': 64, 'long_window': 64*4, 'alfa_short': 100, 'alfa_long': 100, 'volume_power_short': 100, 'volume_power_long': 100}
     # params = {'short_window': 10, 'long_window': 381, 'alfa_short': -17, 'alfa_long': 110, 'volume_power_short': 92, 'volume_power_long': 109}
-    params = {'short_window': 107, 'long_window': 94, 'alfa_short': -13, 'alfa_long': 113, 'volume_power_short': 119, 'volume_power_long': 238}
+    params = {'short_window': 15, 'long_window': 223, 'alfa_short': -13, 'alfa_long': 181, 'volume_power_short': 150, 'volume_power_long': 236}
     params['next_day_execution'] = True
     params['sides'] = "long"
     strategy = emvwap_strategy(**params)

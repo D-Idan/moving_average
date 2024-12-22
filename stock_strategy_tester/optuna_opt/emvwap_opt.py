@@ -11,14 +11,14 @@ from strategies.emvwap import emvwap_strategy
 
 # Load sample data
 # ticker = ["AAPL", "AMZN", "GOOGL", "MSFT", "TSLA", "AVGO", "NVDA", "META"]
-ticker = ["AAPL", "JPM", "U", "SQ", "TSLA", "PLTR", "INTC", "F", "WBD"]
+ticker = ["AAPL", "JPM", "SQ", "TSLA", "INTC", "F", "WBD"] # 7 stocks
 # ticker = "META"
 # ticker = "SPY"
 # ticker = "SPMO"
 # ticker = "JPM"
 
-start_date = "2005-01-01"
-end_date = "2021-01-01"
+start_date = "2000-01-01"
+end_date = "2020-01-01"
 # end_date = datetime.now().strftime("%Y-%m-%d")
 
 # Number of trials
@@ -26,6 +26,7 @@ n_trials = 2000
 
 # Define initial trial parameters
 initial_params = [
+{'short_window': 15, 'long_window': 223, 'alfa_short': -13, 'alfa_long': 181, 'volume_power_short': 150, 'volume_power_long': 236},
     {'short_window': 1000, 'long_window': 1000, 'alfa_short': 100, 'alfa_long': 100, 'volume_power_short': 100, 'volume_power_long': 100},
     {"short_window": 63, "long_window": 63*4, "alfa_short": 0, "alfa_long": 0, "volume_power_short": 100, "volume_power_long": 100},
     {'short_window': 5, 'long_window': 470, 'alfa_short': 1, 'alfa_long': 3, 'volume_power_short': 160, 'volume_power_long': 47},
@@ -75,8 +76,8 @@ data = load_data_for_testing(ticker, start_date, end_date)
 # Objective function for Optuna
 def objective(trial):
     # Define hyperparameters to optimize
-    short_window = trial.suggest_int("short_window", 10, 300)  # Range for short_window
-    long_window = trial.suggest_int("long_window", 10, 300)  # Range for long_window
+    short_window = trial.suggest_int("short_window", 5, 63)  # Range for short_window
+    long_window = trial.suggest_int("long_window", 63*2, 63*4)  # Range for long_window
     alfa_short = trial.suggest_int("alfa_short", -20, 200)  # Range for alfa_short (percentage)
     alfa_long = trial.suggest_int("alfa_long", -20, 200)  # Range for alfa_long (percentage)
     volume_power_short = trial.suggest_int("volume_power_short", 80, 150)  # Range for volume_power_short
