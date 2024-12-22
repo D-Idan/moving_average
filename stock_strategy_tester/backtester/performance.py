@@ -105,8 +105,13 @@ def generate_report_backtest(data, risk_free_rate=0.0):
     :param data: DataFrame containing the backtesting results with 'Sys_Ret' column.
     :param risk_free_rate: Risk-free rate for performance metrics calculation.
     """
-    data_Sys_Ret = (data["Position"] * data["Daily_Returns"]).cumsum()
+    relevant_returns = data["Position"] * data["Daily_Returns"]
+    data_Sys_Ret = (relevant_returns).cumsum()
+    print("\nBenchmark Report:")
+    print(f"Total Absolute Return (%): {(data["Close"].iloc[-1] / data["Close"].iloc[1]) * 100:.2f}")
+
     print("\nBacktesting Report:")
+    print(f"Total Absolute Return (%): {(relevant_returns + 1).prod() * 100:.2f}")
     print(f"Total Return (%): {100 * (data["Position"] * data["Daily_Returns"]).sum():.2f}")
     print(f"Long Return (%): {100 * (data["Signal_long"] * data["Daily_Returns"]).sum():.2f}")
     print(f"Short Return (%): {-100 * (data["Signal_short"] * data["Daily_Returns"]).sum():.2f}")

@@ -1,15 +1,18 @@
 import numpy as np
 
-def profit_loss(data):
+def profit_loss(data, all_positions=False):
     """
     Custom loss function to maximize profit.
     :param data: DataFrame containing backtesting results.
     :return: Loss value (lower is better).
     """
     # Calculate profit (total returns)
-    total_profit = (data["Position"] * data["Daily_Returns"]).sum()
+    relevant_returns = data["Position"] * data["Daily_Returns"]
+    if all_positions:
+        relevant_returns = data["Daily_Returns"]
 
-    return -total_profit
+    total_profit = (relevant_returns + 1).prod()
+    return total_profit
 
 def profit_time_loss(data, w_profit=0.7, w_time=0.3):
     """
@@ -53,8 +56,6 @@ def profit_ratio_loss(data, w_profit=0.5, w_time=0.3, w_ratio=0.2, w_entry=0.1):
     data["Position"] = position
     data["Trade_ID"] = (position != position.shift(1)).cumsum()  # Assign unique IDs to each trade period
 
-    # Calculate profit (total returns)
-    total_profit = (data["Position"] * data["Daily_Returns"]).sum()
 
     # Calculate time in market as a percentage
     time_in_market = np.count_nonzero(data["Position"]) / len(data)
@@ -85,18 +86,24 @@ def profit_ratio_loss(data, w_profit=0.5, w_time=0.3, w_ratio=0.2, w_entry=0.1):
 
     # Calculate the ratio of profitable to unprofitable trades
     if num_unprofitable_trades > 0:
-        profitable_ratio = num_profitable_trades / num_unprofitable_trades
+        profitable_ratio = num_profitable_trades / (num_unprofitable_trades + num_profitable_trades)
     else:
         profitable_ratio = -float("inf")  # Infinite ratio if no unprofitable trades
 
+    # Calculate profit (total returns)
+    test_profit_score = profit_loss(data)
+
     # Normalize metrics
-    profit_score = total_profit / 100  # Adjust scaling as needed
+    full_hold_profit = data["Close"].iloc[-1] / data["Close"].iloc[0]
+    profit_score = test_profit_score / full_hold_profit
+    profit_score = (data["Position"] * data["Daily_Returns"]).sum() # / data["Position"].sum()
+
     time_penalty = time_in_market  # This is already normalized (0 to 1)
 
     # short_signal touch lows for entrance to long position
-    entry_long = abs(data["short_signal"] - data["Low"]).sum() / (len(data) * 100)
+    entry_long = (abs(data["short_signal"] - data["Low"]) <= data["Low"] * 0.01).sum() / (len(data))
 
-    # Calculate loss
+    # Calculate loss We need to minimize the loss
     loss = -w_profit * profit_score + w_time * time_penalty - w_ratio * profitable_ratio - w_entry * entry_long
 
     return loss

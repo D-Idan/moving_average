@@ -24,17 +24,17 @@ def emvwap_strategy(short_window=63, long_window=63*4, alfa_short=50, alfa_long=
             return rolling_price_volume / rolling_volume ** volume_power
 
         # Helper: Calculate EM-VWAP
-        def calculate_em_vwap(span, volume_power=100):
+        def calculate_em_vwap(span, volume_power=100, day_price="Close"):
             volume_power = volume_power / 100
             # price_volume = (data_s["High"] + data_s["Low"] + data_s["Close"]) / 3 * data_s["Volume"]
-            price_volume = data_s["Low"] * (data_s["Volume"] ** volume_power)
+            price_volume = data_s[day_price] * (data_s["Volume"] ** volume_power)
             ewma_price_volume = price_volume.ewm(span=span, adjust=False).mean()
             ewma_volume = data_s["Volume"].ewm(span=span, adjust=False).mean()
             return ewma_price_volume / (ewma_volume ** volume_power)
 
         # Calculate indicators
-        EMVWAP_Short = calculate_em_vwap(short_window, volume_power=volume_power_short)
-        EMVWAP_Long = calculate_em_vwap(long_window, volume_power=volume_power_long)
+        EMVWAP_Short = calculate_em_vwap(short_window, volume_power=volume_power_short, day_price="Low")
+        EMVWAP_Long = calculate_em_vwap(long_window, volume_power=volume_power_long, day_price="High")
 
         # Detect where the slope of EMVWAP_Long changes from positive to negative
         slope_long_emvwap = EMVWAP_Long.diff()
@@ -45,7 +45,7 @@ def emvwap_strategy(short_window=63, long_window=63*4, alfa_short=50, alfa_long=
         EMVWAP_Long = EMVWAP_Long[-min_length:]
         EMVWAP_Short = EMVWAP_Short[-min_length:]
         slope_long_emvwap = slope_long_emvwap[-min_length:]
-        price = data_s["Open"].copy()[-min_length:]
+        price = data_s["Close"].copy()[-min_length:]
 
         # Determine conditions
         # Note:

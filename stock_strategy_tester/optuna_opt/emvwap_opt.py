@@ -37,12 +37,12 @@ def add_initial_trials(study, initial_params):
 # Objective function for Optuna
 def objective(trial):
     # Define hyperparameters to optimize
-    short_window = trial.suggest_int("short_window", 10, 500)  # Range for short_window
-    long_window = trial.suggest_int("long_window", 5, 500)  # Range for long_window
-    alfa_short = trial.suggest_int("alfa_short", -20, 110)  # Range for alfa_short (percentage)
-    alfa_long = trial.suggest_int("alfa_long", -20, 110)  # Range for alfa_long (percentage)
-    volume_power_short = trial.suggest_int("volume_power_short", 40, 220)  # Range for volume_power_short
-    volume_power_long = trial.suggest_int("volume_power_long", 40, 220)  # Range for volume_power_long
+    short_window = trial.suggest_int("short_window", 10, 400)  # Range for short_window
+    long_window = trial.suggest_int("long_window", 10, 400)  # Range for long_window
+    alfa_short = trial.suggest_int("alfa_short", -20, 120)  # Range for alfa_short (percentage)
+    alfa_long = trial.suggest_int("alfa_long", -20, 120)  # Range for alfa_long (percentage)
+    volume_power_short = trial.suggest_int("volume_power_short", 80, 150)  # Range for volume_power_short
+    volume_power_long = trial.suggest_int("volume_power_long", 80, 150)  # Range for volume_power_long
 
     # Create the strategy with sampled hyperparameters
     strategy = emvwap_strategy(
@@ -60,9 +60,9 @@ def objective(trial):
     results = backtester.run(strategy)
 
     # Calculate total return as the optimization target
-    # loss = profit_loss(results["data"])
-    # # loss = profit_time_loss(results["data"], w_profit=0.95, w_time=0.05)
-    loss = profit_ratio_loss(results["data"], w_profit=0.97, w_time=0.00, w_ratio=0.01, w_entry=0.02)
+    # loss = -profit_loss(results["data"])
+    # loss = profit_time_loss(results["data"], w_profit=0.95, w_time=0.05)
+    loss = profit_ratio_loss(results["data"], w_profit=1.00, w_time=0.0, w_ratio=0.0, w_entry=0.00)
 
     return loss
 

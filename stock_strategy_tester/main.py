@@ -52,6 +52,7 @@ def main():
     # strategy = mean_reversion_strategy( window=116, num_std_dev=3, sides="both")
     # strategy = ptcv_strategy(short_window=80, long_window=100, sides="both")
     params = {'short_window': 426, 'long_window': 5, 'alfa_short': 105, 'alfa_long': -14, 'volume_power_short': 166, 'volume_power_long': 71}
+    params = {'short_window': 28, 'long_window': 322, 'alfa_short': -11, 'alfa_long': 117, 'volume_power_short': 97, 'volume_power_long': 147}
 
     strategy = emvwap_strategy(**params)
 
