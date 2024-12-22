@@ -108,7 +108,9 @@ def generate_report_backtest(data, risk_free_rate=0.0):
     relevant_returns = data["Position"] * data["Daily_Returns"]
     data_Sys_Ret = (relevant_returns).cumsum()
     print("\nBenchmark Report:")
-    print(f"Total Absolute Return (%): {(data["Close"].iloc[-1] / data["Close"].iloc[1]) * 100:.2f}")
+    print(f"Total Absolute Return E/S (%): {(data["Close"].iloc[-1] / data["Close"].iloc[1]) * 100:.2f}")
+    print(f"Total Absolute Return (%): {(data["Daily_Returns"] + 1).prod() * 100:.2f}")
+    print(f"Total Return (%): {(data["Daily_Returns"]).sum() * 100:.2f}")
 
     print("\nBacktesting Report:")
     print(f"Total Absolute Return (%): {(relevant_returns + 1).prod() * 100:.2f}")
