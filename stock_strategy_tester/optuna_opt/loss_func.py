@@ -1,5 +1,8 @@
 import numpy as np
 
+from backtester.performance import calculate_sharpe_ratio
+
+
 def profit_loss(data, all_positions=False):
     """
     Custom loss function to maximize profit.
@@ -11,7 +14,8 @@ def profit_loss(data, all_positions=False):
     if all_positions:
         relevant_returns = data["Daily_Returns"]
 
-    total_profit = (relevant_returns + 1).prod()
+    # total_profit = (relevant_returns + 1).prod()
+    total_profit = relevant_returns.sum()
     return total_profit
 
 def profit_time_loss(data, w_profit=0.7, w_time=0.3):
@@ -23,18 +27,19 @@ def profit_time_loss(data, w_profit=0.7, w_time=0.3):
     :return: Loss value (lower is better).
     """
     # Calculate profit (total returns)
-    total_profit = (data["Position"] * data["Daily_Returns"]).sum()
+    total_profit_test = profit_loss(data)
+    total_profit_abs = profit_loss(data, all_positions=True)
 
     # Calculate time in market as a percentage
     time_in_market = np.count_nonzero(data["Position"]) / len(data)
 
     # Normalize metrics (optional, but ensures consistency across scales)
     # Assuming total_profit is on a larger scale, we normalize it.
-    profit_score = total_profit / 100  # Adjust scaling as needed
-    time_penalty = time_in_market  # This is already normalized (0 to 1)
+    profit_score = total_profit_test / total_profit_abs
+    time_penalty = time_in_market + 0.1  # This is already normalized (0 to 1)
 
     # Calculate loss
-    loss = -w_profit * profit_score + w_time * time_penalty
+    loss = -1 * (w_profit * profit_score) / (w_time * time_penalty) # We need to minimize the loss
 
     return loss
 
@@ -85,18 +90,18 @@ def profit_ratio_loss(data, w_profit=0.5, w_time=0.3, w_ratio=0.2, w_entry=0.1):
     num_unprofitable_trades = len(unprofitable_trades["Trade_ID"].unique())
 
     # Calculate the ratio of profitable to unprofitable trades
-    if num_unprofitable_trades > 0:
+    if num_unprofitable_trades + num_profitable_trades > 0:
         profitable_ratio = num_profitable_trades / (num_unprofitable_trades + num_profitable_trades)
     else:
-        profitable_ratio = -float("inf")  # Infinite ratio if no unprofitable trades
+        profitable_ratio = -10**8  # Infinite ratio if no unprofitable trades
 
     # Calculate profit (total returns)
     test_profit_score = profit_loss(data)
 
     # Normalize metrics
-    full_hold_profit = data["Close"].iloc[-1] / data["Close"].iloc[0]
-    profit_score = test_profit_score / full_hold_profit
-    profit_score = (data["Position"] * data["Daily_Returns"]).sum() # / data["Position"].sum()
+    # full_hold_profit = data["Close"].iloc[-1] / data["Close"].iloc[0]
+    profit_score = test_profit_score / profit_loss(data, all_positions=True)  # Normalize profit score
+    # profit_score = (data["Position"] * data["Daily_Returns"]).sum() # / data["Position"].sum()
 
     time_penalty = time_in_market  # This is already normalized (0 to 1)
 
@@ -105,5 +110,19 @@ def profit_ratio_loss(data, w_profit=0.5, w_time=0.3, w_ratio=0.2, w_entry=0.1):
 
     # Calculate loss We need to minimize the loss
     loss = -w_profit * profit_score + w_time * time_penalty - w_ratio * profitable_ratio - w_entry * entry_long
+
+    return loss
+
+def sharp_ratio_loss(data):
+    """
+    Custom loss function to maximize sharp ratio
+    :return: Loss value (lower is better).
+    """
+    relevant_returns = data["Position"] * data["Daily_Returns"]
+    data_Sys_Ret = (relevant_returns).cumsum()
+    sr = calculate_sharpe_ratio(data_Sys_Ret)
+
+    # Calculate loss We need to minimize the loss
+    loss = -sr
 
     return loss

@@ -102,7 +102,7 @@ if __name__ == "__main__":
     # ticker = "U"
     ticker = "JPM"
 
-    start_date = "2010-01-01"
+    start_date = "2021-01-01"
     # Today date
     # end_date = "2021-01-01"
     end_date = datetime.now().strftime("%Y-%m-%d")
@@ -112,9 +112,8 @@ if __name__ == "__main__":
 
     # Strategy
     # params = {'short_window': 64, 'long_window': 64*4, 'alfa_short': 100, 'alfa_long': 100, 'volume_power_short': 100, 'volume_power_long': 100}
-    # params = {'short_window': 5, 'long_window': 470, 'alfa_short': 1, 'alfa_long': 3, 'volume_power_short': 160, 'volume_power_long': 47}
     # params = {'short_window': 10, 'long_window': 381, 'alfa_short': -17, 'alfa_long': 110, 'volume_power_short': 92, 'volume_power_long': 109}
-    params = {'short_window': 23, 'long_window': 467, 'alfa_short': -20, 'alfa_long': 141, 'volume_power_short': 133, 'volume_power_long': 223}
+    params = {'short_window': 107, 'long_window': 94, 'alfa_short': -13, 'alfa_long': 113, 'volume_power_short': 119, 'volume_power_long': 238}
     params['next_day_execution'] = True
     params['sides'] = "long"
     strategy = emvwap_strategy(**params)

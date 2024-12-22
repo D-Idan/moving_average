@@ -45,7 +45,7 @@ def emvwap_strategy(short_window=63, long_window=63*4, alfa_short=50, alfa_long=
         EMVWAP_Long = EMVWAP_Long[-min_length:]
         EMVWAP_Short = EMVWAP_Short[-min_length:]
         slope_long_emvwap = slope_long_emvwap[-min_length:]
-        price = data_s["Close"].copy()[-min_length:]
+        price = data_s["Open"].copy()[-min_length:]
 
         # Determine conditions
         # Note:
