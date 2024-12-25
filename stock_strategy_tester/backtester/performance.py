@@ -5,6 +5,64 @@ from tqdm import tqdm
 from utils.plotter import plot_heatmap, plot_aggregate_heatmap, plot_benchmark_with_positions, plot_gains, \
     plot_drawdown, plot_volatility, plot_yearly_comparison
 
+def calculate_total_profit_per_trade(data, normalize=False):
+    """
+    Calculate the total profit per trade.
+    :param data: DataFrame containing backtesting results.
+    :return: Total profit per trade.
+    """
+    # For each trade, calculate end price / start price
+    data["Trade_ID"] = (
+                data["Position"] != data["Position"].shift(1)).cumsum()  # Assign unique IDs to each trade period
+    data["Trade_ID"] = data["Trade_ID"].ffill()  # Forward-fill the trade IDs to the next trade
+    data["Trade_ID"] = data["Trade_ID"].bfill()  # Back-fill the trade IDs to the previous trade
+    data["Trade_ID"] = data["Trade_ID"][data["Position"] != 0]  # Remove zero positions
+    # total_profit = 1
+    # for trade_id in data["Trade_ID"].unique():
+    #     trade = data[data["Trade_ID"] == trade_id]
+    #     # Avoid IndexError("single positional indexer is out-of-bounds")
+    #     if len(trade) < 2:
+    #         trade_profit = 1 + (trade["Daily_Returns"] * trade["Position"]).sum()
+    #     else:
+    #         trade_profit = trade["Close"].iloc[-1] / trade["Close"].iloc[0] * trade["Position"].iloc[0]
+    #     total_profit *= trade_profit if trade_profit != 0 else 1
+    #
+    # if normalize:
+    #     total_profit = total_profit / (data["Close"].iloc[-1] / data["Close"].iloc[0])
+
+
+
+################ 1 ################
+    # Determine if a trade is profitable or not
+    trade_results = data.groupby("Trade_ID").agg(
+        {"Position": "first", "Open": "first", "Close": "last"}
+    )
+    ################################ 1 ################################
+    # Calculate percentage profit for each trade
+    trade_results["Profit_Percentage"] = trade_results.apply(
+        lambda row: ((row["Close"] - row["Open"]) / row["Open"] * 100)
+        if row["Position"] == 1 else ((row["Open"] - row["Close"]) / row["Open"] * 100),
+        axis=1
+    )
+
+    # delete position 0 trades
+    trade_results1 = trade_results[trade_results["Position"] != 0]
+
+    # Broadcast profit percentages back to the original DataFrame
+    data["Profit_Percentage"] = data["Trade_ID"].map(trade_results1["Profit_Percentage"])
+
+    # Print profit percentages for each trade
+    u = 1
+    qqq = trade_results1[["Profit_Percentage"]]
+    for i in range(len(qqq)):
+        u *= ((qqq.iloc[i] / 100) + 1)
+
+    total_profit = (u.iloc[0] * 100 - 100) / 100 if len(qqq) > 0 else 1
+
+    if normalize:
+        total_profit = total_profit / (data["Close"].iloc[-1] / data["Close"].iloc[0])
+
+    return total_profit
 
 def calculate_sharpe_ratio(data, risk_free_rate=0.0):
     """
@@ -113,7 +171,7 @@ def generate_report_backtest(data, risk_free_rate=0.0):
     print(f"Total Return (%): {(data["Daily_Returns"]).sum() * 100:.2f}")
 
     print("\nBacktesting Report:")
-    print(f"Total Absolute Return (%): {(relevant_returns + 1).prod() * 100:.2f}")
+    print(f"Total profit multiple all trades normelized to buy&hold profit: {calculate_total_profit_per_trade(data, normalize=True):.2f}")
     print(f"Total Return (%): {100 * (data["Position"] * data["Daily_Returns"]).sum():.2f}")
     print(f"Long Return (%): {100 * (data["Signal_long"] * data["Daily_Returns"]).sum():.2f}")
     print(f"Short Return (%): {-100 * (data["Signal_short"] * data["Daily_Returns"]).sum():.2f}")

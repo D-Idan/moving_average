@@ -6,31 +6,44 @@ import pandas as pd
 from backtester.backtester import Backtester
 from backtester.performance import generate_report_backtest
 from data.data_loader import load_data, preprocess_data
+from data import tickers_by_sector
 from optuna_opt.loss_func import profit_loss, profit_time_loss, profit_ratio_loss, sharp_ratio_loss
 from strategies.emvwap import emvwap_strategy
 
 # Load sample data
 # ticker = ["AAPL", "AMZN", "GOOGL", "MSFT", "TSLA", "AVGO", "NVDA", "META"]
-ticker = ["AAPL", "JPM", "SQ", "TSLA", "INTC", "F", "WBD"] # 7 stocks
+# ticker = ["AAPL", "JPM", "SQ", "TSLA", "INTC", "F", "WBD"] # 7 stocks
+ticker = tickers_by_sector.ticker_financials
+ticker = tickers_by_sector.ticker_real_estate + ticker
+ticker = tickers_by_sector.ticker_materials + ticker
+ticker = tickers_by_sector.ticker_industrials + ticker
+ticker = tickers_by_sector.ticker_consumer_staples + ticker
+ticker = tickers_by_sector.ticker_consumer_discretionary + ticker
 # ticker = "META"
+# ticker = "TSLA"
 # ticker = "SPY"
 # ticker = "SPMO"
 # ticker = "JPM"
+# ticker = "C"
+# ticker = "F"
 
 start_date = "2000-01-01"
 end_date = "2020-01-01"
 # end_date = datetime.now().strftime("%Y-%m-%d")
 
+# Strategy
+strategy_selected = emvwap_strategy
+
 # Number of trials
-n_trials = 2000
+n_trials = 9000
+sides = "long"
 
 # Define initial trial parameters
 initial_params = [
-{'short_window': 15, 'long_window': 223, 'alfa_short': -13, 'alfa_long': 181, 'volume_power_short': 150, 'volume_power_long': 236},
-    {'short_window': 1000, 'long_window': 1000, 'alfa_short': 100, 'alfa_long': 100, 'volume_power_short': 100, 'volume_power_long': 100},
+{'short_window': 25, 'long_window': 98, 'alfa_short': 10, 'alfa_long': 0, 'volume_power_short': 162, 'volume_power_long': 92},
     {"short_window": 63, "long_window": 63*4, "alfa_short": 0, "alfa_long": 0, "volume_power_short": 100, "volume_power_long": 100},
     {'short_window': 5, 'long_window': 470, 'alfa_short': 1, 'alfa_long': 3, 'volume_power_short': 160, 'volume_power_long': 47},
-    {'short_window': 426, 'long_window': 5, 'alfa_short': 105, 'alfa_long': -14, 'volume_power_short': 166, 'volume_power_long': 71},
+    {'short_window': 5, 'long_window': 25, 'alfa_short': 108, 'alfa_long': 137, 'volume_power_short': 88, 'volume_power_long': 89},
     {'short_window': 23, 'long_window': 467, 'alfa_short': -20, 'alfa_long': 141, 'volume_power_short': 133, 'volume_power_long': 223},
 ]
 
@@ -41,10 +54,10 @@ def loss_flow(strategy, data_pd):
     results = backtester.run(strategy)
 
     # Calculate total return as the optimization target
-    # loss = -profit_loss(results["data"])
-    # loss = profit_time_loss(results["data"], w_profit=10**10, w_time=1)
+    # loss = -profit_loss(results["data"], all_positions=False, normalize=True, add_cumulative=True)
+    loss = profit_time_loss(results["data"], w_profit=1, w_time=1)
     # loss = sharp_ratio_loss(results["data"])
-    loss = profit_ratio_loss(results["data"], w_profit=1, w_time=0.0, w_ratio=0.0, w_entry=0.00)
+    # loss = profit_ratio_loss(results["data"], w_profit=0.8, w_time=0.2, w_ratio=0.0, w_entry=0.00001)
 
     return loss
 
@@ -76,22 +89,24 @@ data = load_data_for_testing(ticker, start_date, end_date)
 # Objective function for Optuna
 def objective(trial):
     # Define hyperparameters to optimize
-    short_window = trial.suggest_int("short_window", 5, 63)  # Range for short_window
-    long_window = trial.suggest_int("long_window", 63*2, 63*4)  # Range for long_window
-    alfa_short = trial.suggest_int("alfa_short", -20, 200)  # Range for alfa_short (percentage)
-    alfa_long = trial.suggest_int("alfa_long", -20, 200)  # Range for alfa_long (percentage)
-    volume_power_short = trial.suggest_int("volume_power_short", 80, 150)  # Range for volume_power_short
-    volume_power_long = trial.suggest_int("volume_power_long", 80, 250)  # Range for volume_power_long
+    short_window = trial.suggest_int("short_window", 2, 64)  # Range for short_window
+    long_window = trial.suggest_int("long_window", 5, 64*4)  # Range for long_window
+    alfa_short = trial.suggest_int("alfa_short", 0, 100, step=10)  # Range for alfa_short (percentage)
+    alfa_long = trial.suggest_int("alfa_long", 0, 100, step=10)  # Range for alfa_long (percentage)
+    volume_power_short = trial.suggest_int("volume_power_short", 110, 190)  # Range for volume_power_short
+    volume_power_long = trial.suggest_int("volume_power_long", 90, 150)  # Range for volume_power_long
+    # stop_loss_days = trial.suggest_int("stop_loss_days", 2, 10)  # Range for stop_loss_days
 
     # Create the strategy with sampled hyperparameters
-    strategy = emvwap_strategy(
+    strategy = strategy_selected(
         short_window=short_window,
         long_window=long_window,
         alfa_short=alfa_short,
         alfa_long=alfa_long,
         volume_power_short=volume_power_short,
         volume_power_long=volume_power_long,
-        sides="long",
+        # stop_loss_days=stop_loss_days,
+        sides=sides,
     )
 
     # Calculate the loss
@@ -115,18 +130,20 @@ if __name__ == "__main__":
 
     # Optional: Run the strategy with the best hyperparameters and generate a report
     best_params = study.best_params
-    best_strategy = emvwap_strategy(
+    # best_strategy = emvwap_strategy(
+    best_strategy = strategy_selected(
         short_window=best_params["short_window"],
         long_window=best_params["long_window"],
         alfa_short=best_params["alfa_short"],
         alfa_long=best_params["alfa_long"],
         volume_power_short=best_params["volume_power_short"],
         volume_power_long=best_params["volume_power_long"],
-        sides="long",
+        # stop_loss_days=best_params["stop_loss_days"],
+        sides=sides,
     )
 
-    data_back = data[0]
-
-    backtester = Backtester(data_back)
-    results = backtester.run(best_strategy)
-    generate_report_backtest(results['data'])
+    for i, data_i in enumerate(data):
+        print(f"\n Backtesting for {ticker[i]}")
+        backtester = Backtester(data_i)
+        results = backtester.run(best_strategy)
+        generate_report_backtest(results['data'])

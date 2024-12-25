@@ -7,6 +7,7 @@ import pandas as pd
 from backtester.performance import generate_report_backtest
 from strategies.emvwap import emvwap_strategy
 
+
 def plot_strategy_results(data, lines, results):
     """
     Plot the results of the EMVWAP strategy.
@@ -28,8 +29,33 @@ def plot_strategy_results(data, lines, results):
 
     # Determine if a trade is profitable or not
     trade_results = data.groupby("Trade_ID").agg(
-        {"Position": "first", "Cumulative_Returns": "last", "Open": "first"}
+        {"Position": "first", "Cumulative_Returns": "last", "Open": "first", "Close": "last"}
     )
+################################ 1 ################################
+    # Calculate percentage profit for each trade
+    trade_results["Profit_Percentage"] = trade_results.apply(
+        lambda row: ((row["Close"] - row["Open"]) / row["Open"] * 100)
+        if row["Position"] == 1 else ((row["Open"] - row["Close"]) / row["Open"] * 100),
+        axis=1
+    )
+
+    # delete position 0 trades
+    trade_results1 = trade_results[trade_results["Position"] != 0]
+
+    # Broadcast profit percentages back to the original DataFrame
+    data["Profit_Percentage"] = data["Trade_ID"].map(trade_results1["Profit_Percentage"])
+
+    # Print profit percentages for each trade
+    u = 1
+    qqq = trade_results1[["Profit_Percentage"]]
+    for i in range(len(qqq)):
+        u *= ((qqq.iloc[i] / 100) + 1)
+
+    u = u.iloc[0] * 100 - 100 if len(qqq) > 0 else 1
+    print(f"Compound Profit Percentage: {u:.2f}%")
+    ################################ 1 ################################
+
+    # Determine if a trade is profitable or not
     trade_results["Profitable"] = (
             (trade_results["Position"] == 1) & (trade_results["Cumulative_Returns"] > 0) |  # Longs: Positive returns
             (trade_results["Position"] == -1) & (trade_results["Cumulative_Returns"] < 0)  # Shorts: Negative returns
@@ -77,6 +103,28 @@ def plot_strategy_results(data, lines, results):
     # Highlight profitable and unprofitable trades for the entire active period
     plt.scatter(profitable_trades.index, profitable_trades["Open"], color="lime", label="Profitable Trade", marker="^", alpha=0.8)
     # plt.scatter(unprofitable_trades.index, unprofitable_trades["Open"], color="crimson", label="Unprofitable Trade", marker="v", alpha=0.8)
+    # Annotate trades with profit percentages
+    for idx, trade in trade_results.iterrows():
+        trade_data = data[data["Trade_ID"] == idx]
+        if not trade_data.empty:
+            trade_date = trade_data.index[0]  # Pick a representative date
+            if trade["Position"] != 0:
+                plt.text(
+                    trade_date, trade["Open"], f"{trade['Profit_Percentage']:.2f}%",
+                    color="black" if trade["Profit_Percentage"] > 0 else "red",
+                    fontsize=10, ha="center", alpha=0.7
+                )
+
+    # Highlight entry and exit points
+    for idx, trade in trade_results.iterrows():
+        trade_data = data[data["Trade_ID"] == idx]
+        if not trade_data.empty and trade["Position"] != 0:
+            entry_date = trade_data.index[0]  # Entry point (first date of trade)
+            exit_date = trade_data.index[-1]  # Exit point (last date of trade)
+
+            # Draw vertical lines for entry and exit points
+            plt.axvline(x=entry_date, color='green', linestyle='-', alpha=0.5, label="Entry Point" if idx == 0 else "")
+            plt.axvline(x=exit_date, color='red', linestyle='-', alpha=0.5, label="Exit Point" if idx == 0 else "")
 
     # Add labels, legend, and title
     plt.title(f"EMVWAP Strategy Performance")
@@ -96,13 +144,23 @@ if __name__ == "__main__":
 
     # Load sample data
     # ticker = "META"
+    # ticker = "TSLA"
+    # ticker = "F"
+    # ticker = "SHOP"
     # ticker = "SQ"
+    # ticker = "LVS"
+    # ticker = "CMG"
     # ticker = "SPMO"
     # ticker = "spy"
-    # ticker = "U"
-    ticker = "JPM"
+    ticker = "U"
+    # ticker = "JPM"
+    # ticker = "AMD"
+    # ticker = "nvda"
+    # ticker = "AXP"
+    # ticker = "SBAC"
 
-    start_date = "2021-01-01"
+    start_date = "2020-01-01"
+    # start_date = "2000-01-01"
     # Today date
     # end_date = "2021-01-01"
     end_date = datetime.now().strftime("%Y-%m-%d")
@@ -111,12 +169,24 @@ if __name__ == "__main__":
     data.index = pd.to_datetime(data["Date"])
 
     # Strategy
-    # params = {'short_window': 64, 'long_window': 64*4, 'alfa_short': 100, 'alfa_long': 100, 'volume_power_short': 100, 'volume_power_long': 100}
-    # params = {'short_window': 10, 'long_window': 381, 'alfa_short': -17, 'alfa_long': 110, 'volume_power_short': 92, 'volume_power_long': 109}
-    params = {'short_window': 15, 'long_window': 223, 'alfa_short': -13, 'alfa_long': 181, 'volume_power_short': 150, 'volume_power_long': 236}
+    # params = {'short_window': 64, 'long_window': 64*4, 'alfa_short': 0, 'alfa_long': 0, 'volume_power_short': 100, 'volume_power_long': 100}
+    # params = {'short_window': 5, 'long_window': 64, 'alfa_short': 100, 'alfa_long': 100, 'volume_power_short': 100, 'volume_power_long': 100}
+    # params = {'short_window': 5, 'long_window': 64*2, 'alfa_short': 100, 'alfa_long': 100, 'volume_power_short': 100, 'volume_power_long': 100}
+    # params = {'short_window': 10, 'long_window': 64*2, 'alfa_short': 0, 'alfa_long': 0, 'volume_power_short': 150, 'volume_power_long': 100} # SPY short above price
+    # params = {'short_window': 3, 'long_window': 52, 'alfa_short': 0, 'alfa_long': 0, 'volume_power_short': 184, 'volume_power_long': 120} # JPM short above price
+    params = {'short_window': 25, 'long_window': 98, 'alfa_short': 10, 'alfa_long': 0, 'volume_power_short': 162, 'volume_power_long': 92}
+
+    # params = {'short_window': 6, 'long_window': 219, 'alfa_short': 0, 'alfa_long': 0, 'volume_power_short': 130, 'volume_power_long': 98}
+    # params = {'short_window': 6, 'long_window': 217, 'alfa_short': 0, 'alfa_long': 0, 'volume_power_short': 185, 'volume_power_long': 97}
+
+    # params = {'short_window': 27, 'long_window': 59, 'alfa_short': 47, 'alfa_long': 97, 'volume_power_short': 111, 'volume_power_long': 118} # TSLA
+    # params = {'short_window': 19, 'long_window': 5, 'alfa_short': 52, 'alfa_long': 40, 'volume_power_short': 124, 'volume_power_long': 101} # F / TSLA
+    # params = {'short_window': 22, 'long_window': 59, 'alfa_short': 14, 'alfa_long': 49, 'volume_power_short': 101, 'volume_power_long': 112} # FCX
     params['next_day_execution'] = True
     params['sides'] = "long"
+
     strategy = emvwap_strategy(**params)
+
 
     # Initialize backtester
     backtester = Backtester(data)

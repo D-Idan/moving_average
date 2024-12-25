@@ -5,7 +5,7 @@ from backtester.performance import generate_report_backtest
 
 
 def emvwap_strategy(short_window=63, long_window=63*4, alfa_short=50, alfa_long=50, volume_power_short=100,
-                    volume_power_long=100, sides="long", next_day_execution=True, return_line=False, stop_loss_days=300
+                    volume_power_long=100, sides="long", next_day_execution=True, return_line=False, stop_loss_days=2
 
                     ):
 
@@ -42,13 +42,16 @@ def emvwap_strategy(short_window=63, long_window=63*4, alfa_short=50, alfa_long=
         EMVWAP_Short = calculate_em_vwap(short_window, volume_power=volume_power_short, day_price="High")
         EMVWAP_Long = calculate_em_vwap(long_window, volume_power=volume_power_long, day_price="Low")
 
+        # Detect where the slope of EMVWAP_Long changes from positive to negative
+        slope_long_emvwap = EMVWAP_Long.diff()
+        # signal_slope_change = (slope_long_emvwap < 0) & (slope_long_emvwap.shift(1) >= 0)
 
-        min_length = min(len(EMVWAP_Long), len(EMVWAP_Short))
+
+        min_length = min(len(EMVWAP_Long), len(EMVWAP_Short), len(slope_long_emvwap))
         EMVWAP_Long = EMVWAP_Long[-min_length:]
         EMVWAP_Short = EMVWAP_Short[-min_length:]
-        slope_long_emvwap = EMVWAP_Long.diff(64)[-min_length:] # 64 is the window TODO: Change to 1
-        slope_short_emvwap = EMVWAP_Short.diff(20)[-min_length:] # 20 is the window TODO: Change to 1
-        price = data_s["High"].copy()[-min_length:]
+        slope_long_emvwap = slope_long_emvwap[-min_length:]
+        price = data_s["Open"].copy()[-min_length:]
 
         # Determine conditions
         # Note:
@@ -57,24 +60,21 @@ def emvwap_strategy(short_window=63, long_window=63*4, alfa_short=50, alfa_long=
         # Long condition
         alfa_long = alfa_long / 100       # LONG 0.65
         EMVWAP_long_calc = alfa_long * EMVWAP_Short + (1 - alfa_long) * EMVWAP_Long
-        long_condition = (price * 0.985 > EMVWAP_long_calc) & (slope_long_emvwap > 0.01)
+        long_condition = (price > EMVWAP_long_calc) # & slope_long_emvwap > 0
 
         # Short condition
         alfa_short = alfa_short / 100       # SHORT 0.65
         EMVWAP_short_calc = alfa_short * EMVWAP_Long + (1 - alfa_short) * EMVWAP_Short
-        short_condition = (price * 1.015 > EMVWAP_short_calc) & (slope_short_emvwap < 0) # TODO: Change <to 1.015
+        short_condition = (price < EMVWAP_short_calc)
 
         # Ensure conditions last at least # days
         days = 2
         long_condition = long_condition.rolling(window=days).sum() == days
-        short_condition = (short_condition.rolling(window=days).sum() == days)
+        short_condition = short_condition.rolling(window=days).sum() == days
 
-
-        # # # STOP-LOSS (If the price in the current trade gets lower in 2% from the maximum price, close the trade)
-        # stop_loss_flag = ~(price < price.rolling(window=stop_loss_days).max() * 0.98)
-        # sl_2_condition = (price > price.rolling(window=5).mean()) & stop_loss_flag
-        # long_condition = long_condition & sl_2_condition
-        # # short_condition = short_condition & (price < price.rolling(window=stop_loss_days).min() * 1.02)
+        # STOP-LOSS (If the price in the current trade gets lower in 2% from the maximum price, close the trade)
+        long_condition = long_condition & (price > price.rolling(window=stop_loss_days).min() * 0.98)
+        short_condition = short_condition & (price < price.rolling(window=stop_loss_days).max() * 1.02)
 
         # Initialize position signals
         position = pd.Series(0, index=data_s.index)

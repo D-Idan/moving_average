@@ -1,21 +1,27 @@
 import numpy as np
 
-from backtester.performance import calculate_sharpe_ratio
+from backtester.performance import calculate_sharpe_ratio, calculate_total_profit_per_trade
 
 
-def profit_loss(data, all_positions=False):
+def profit_loss(data, all_positions=False, normalize=False, add_cumulative=False):
     """
     Custom loss function to maximize profit.
     :param data: DataFrame containing backtesting results.
     :return: Loss value (lower is better).
     """
-    # Calculate profit (total returns)
     relevant_returns = data["Position"] * data["Daily_Returns"]
+    # Calculate profit (total returns)
     if all_positions:
         relevant_returns = data["Daily_Returns"]
+        return data["Close"].iloc[-1] / data["Close"].iloc[0]
+
+    total_profit = calculate_total_profit_per_trade(data, normalize=normalize)
 
     # total_profit = (relevant_returns + 1).prod()
-    total_profit = relevant_returns.sum()
+    cumulative_profit = relevant_returns.sum() / data["Daily_Returns"].sum() if normalize else relevant_returns.sum()
+
+    if add_cumulative:
+        return (total_profit + cumulative_profit) / 2
     return total_profit
 
 def profit_time_loss(data, w_profit=0.7, w_time=0.3):
@@ -26,17 +32,13 @@ def profit_time_loss(data, w_profit=0.7, w_time=0.3):
     :param w_time: Weight for the time in market penalty (lower is better).
     :return: Loss value (lower is better).
     """
-    # Calculate profit (total returns)
-    total_profit_test = profit_loss(data)
-    total_profit_abs = profit_loss(data, all_positions=True)
-
     # Calculate time in market as a percentage
     time_in_market = np.count_nonzero(data["Position"]) / len(data)
 
     # Normalize metrics (optional, but ensures consistency across scales)
     # Assuming total_profit is on a larger scale, we normalize it.
-    profit_score = total_profit_test / total_profit_abs
-    time_penalty = time_in_market + 0.1  # This is already normalized (0 to 1)
+    profit_score = profit_loss(data, normalize=True, add_cumulative=True) # Normalize profit score
+    time_penalty = time_in_market + 1.0  # This is already normalized (0 to 1)
 
     # Calculate loss
     loss = -1 * (w_profit * profit_score) / (w_time * time_penalty) # We need to minimize the loss
@@ -106,7 +108,7 @@ def profit_ratio_loss(data, w_profit=0.5, w_time=0.3, w_ratio=0.2, w_entry=0.1):
     time_penalty = time_in_market  # This is already normalized (0 to 1)
 
     # short_signal touch lows for entrance to long position
-    entry_long = (abs(data["short_signal"] - data["Low"]) <= data["Low"] * 0.01).sum() / (len(data))
+    entry_long = (abs(data["short_signal"] - data["Low"]) / (data["Low"])).sum()
 
     # Calculate loss We need to minimize the loss
     loss = -w_profit * profit_score + w_time * time_penalty - w_ratio * profitable_ratio - w_entry * entry_long

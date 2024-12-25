@@ -47,8 +47,8 @@ def preprocess_data(data):
 
 if __name__ == "__main__":
     # Example usage
-    ticker = "AAPL"
-    start_date = "2022-01-01"
+    ticker = "JPM"
+    start_date = "2000-01-01"
     end_date = "2023-01-01"
 
     # Load and preprocess data
@@ -56,3 +56,7 @@ if __name__ == "__main__":
     processed_data = preprocess_data(raw_data)
 
     print(processed_data.head())
+
+    # Save data to a CSV file
+    # processed_data.to_csv(f"{ticker}_data.csv", index=False)
+    processed_data.to_csv(f"stock_data.csv", index=False)
