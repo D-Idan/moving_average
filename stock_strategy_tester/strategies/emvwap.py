@@ -5,13 +5,14 @@ from backtester.performance import generate_report_backtest
 
 
 def emvwap_strategy(short_window=63, long_window=63*4, alfa_short=50, alfa_long=50, volume_power_short=100,
-                    volume_power_long=100, sides="long", next_day_execution=True, return_line=False, stop_loss_days=300
+                    volume_power_long=100, sides="long", next_day_execution=True, return_line=False, stop_loss_days=300,
+                    long_diff=1, short_diff=1
 
                     ):
 
     def strategy(data_s, alfa_short=alfa_short, alfa_long=alfa_long, short_window=short_window, long_window=long_window,
                  volume_power_short=volume_power_short, volume_power_long=volume_power_long, return_line=return_line, sides=sides,
-                 next_day_execution=next_day_execution, stop_loss_days=stop_loss_days
+                 next_day_execution=next_day_execution, stop_loss_days=stop_loss_days, long_diff=long_diff, short_diff=short_diff
 
                  ):
         """
@@ -46,8 +47,8 @@ def emvwap_strategy(short_window=63, long_window=63*4, alfa_short=50, alfa_long=
         min_length = min(len(EMVWAP_Long), len(EMVWAP_Short))
         EMVWAP_Long = EMVWAP_Long[-min_length:]
         EMVWAP_Short = EMVWAP_Short[-min_length:]
-        slope_long_emvwap = EMVWAP_Long.diff(64)[-min_length:] # 64 is the window TODO: Change to 1
-        slope_short_emvwap = EMVWAP_Short.diff(20)[-min_length:] # 20 is the window TODO: Change to 1
+        slope_long_emvwap = EMVWAP_Long.diff(long_diff)[-min_length:] # 64 is the window TODO: Change to 1
+        slope_short_emvwap = EMVWAP_Short.diff(short_diff)[-min_length:] # 20 is the window TODO: Change to 1
         price = data_s["High"].copy()[-min_length:]
 
         # Determine conditions

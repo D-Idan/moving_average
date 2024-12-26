@@ -13,15 +13,15 @@ from strategies.emvwap import emvwap_strategy
 # Load sample data
 # ticker = ["AAPL", "AMZN", "GOOGL", "MSFT", "TSLA", "AVGO", "NVDA", "META"]
 # ticker = ["AAPL", "JPM", "SQ", "TSLA", "INTC", "F", "WBD"] # 7 stocks
-ticker = tickers_by_sector.ticker_financials
-ticker = tickers_by_sector.ticker_real_estate + ticker
-ticker = tickers_by_sector.ticker_materials + ticker
-ticker = tickers_by_sector.ticker_industrials + ticker
-ticker = tickers_by_sector.ticker_consumer_staples + ticker
-ticker = tickers_by_sector.ticker_consumer_discretionary + ticker
+# ticker = tickers_by_sector.ticker_financials
+# ticker = tickers_by_sector.ticker_real_estate + ticker
+# ticker = tickers_by_sector.ticker_materials + ticker
+# ticker = tickers_by_sector.ticker_industrials + ticker
+# ticker = tickers_by_sector.ticker_consumer_staples + ticker
+# ticker = tickers_by_sector.ticker_consumer_discretionary + ticker
 # ticker = "META"
 # ticker = "TSLA"
-# ticker = "SPY"
+ticker = "SPY"
 # ticker = "SPMO"
 # ticker = "JPM"
 # ticker = "C"
@@ -35,7 +35,7 @@ end_date = "2020-01-01"
 strategy_selected = emvwap_strategy
 
 # Number of trials
-n_trials = 9000
+n_trials = 2000
 sides = "long"
 
 # Define initial trial parameters
@@ -55,9 +55,9 @@ def loss_flow(strategy, data_pd):
 
     # Calculate total return as the optimization target
     # loss = -profit_loss(results["data"], all_positions=False, normalize=True, add_cumulative=True)
-    loss = profit_time_loss(results["data"], w_profit=1, w_time=1)
+    # loss = profit_time_loss(results["data"], w_profit=1, w_time=1)
     # loss = sharp_ratio_loss(results["data"])
-    # loss = profit_ratio_loss(results["data"], w_profit=0.8, w_time=0.2, w_ratio=0.0, w_entry=0.00001)
+    loss = profit_ratio_loss(results["data"], w_profit=0.8, w_time=0.2, w_ratio=0.4, w_entry=0.00001)
 
     return loss
 
@@ -95,7 +95,8 @@ def objective(trial):
     alfa_long = trial.suggest_int("alfa_long", 0, 100, step=10)  # Range for alfa_long (percentage)
     volume_power_short = trial.suggest_int("volume_power_short", 110, 190)  # Range for volume_power_short
     volume_power_long = trial.suggest_int("volume_power_long", 90, 150)  # Range for volume_power_long
-    # stop_loss_days = trial.suggest_int("stop_loss_days", 2, 10)  # Range for stop_loss_days
+    long_diff = trial.suggest_int("long_diff", 0, 64*4, step=8)
+    short_diff = trial.suggest_int("short_diff", 0, 64*2, step=4)
 
     # Create the strategy with sampled hyperparameters
     strategy = strategy_selected(
@@ -105,7 +106,8 @@ def objective(trial):
         alfa_long=alfa_long,
         volume_power_short=volume_power_short,
         volume_power_long=volume_power_long,
-        # stop_loss_days=stop_loss_days,
+        long_diff=long_diff,
+        short_diff=short_diff,
         sides=sides,
     )
 
@@ -138,7 +140,8 @@ if __name__ == "__main__":
         alfa_long=best_params["alfa_long"],
         volume_power_short=best_params["volume_power_short"],
         volume_power_long=best_params["volume_power_long"],
-        # stop_loss_days=best_params["stop_loss_days"],
+        long_diff=best_params["long_diff"],
+        short_diff=best_params["short_diff"],
         sides=sides,
     )
 

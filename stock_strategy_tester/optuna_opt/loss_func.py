@@ -98,20 +98,16 @@ def profit_ratio_loss(data, w_profit=0.5, w_time=0.3, w_ratio=0.2, w_entry=0.1):
         profitable_ratio = -10**8  # Infinite ratio if no unprofitable trades
 
     # Calculate profit (total returns)
-    test_profit_score = profit_loss(data)
+    profit_score = profit_loss(data, normalize=True, add_cumulative=True)  # Normalize profit score
 
     # Normalize metrics
-    # full_hold_profit = data["Close"].iloc[-1] / data["Close"].iloc[0]
-    profit_score = test_profit_score / profit_loss(data, all_positions=True)  # Normalize profit score
-    # profit_score = (data["Position"] * data["Daily_Returns"]).sum() # / data["Position"].sum()
-
-    time_penalty = time_in_market  # This is already normalized (0 to 1)
+    time_penalty = time_in_market + 1  # This is already normalized (0 to 1)
 
     # short_signal touch lows for entrance to long position
     entry_long = (abs(data["short_signal"] - data["Low"]) / (data["Low"])).sum()
 
     # Calculate loss We need to minimize the loss
-    loss = -w_profit * profit_score + w_time * time_penalty - w_ratio * profitable_ratio - w_entry * entry_long
+    loss = -(w_profit * profit_score / w_time * time_penalty) - w_ratio * profitable_ratio - w_entry * entry_long
 
     return loss
 

@@ -60,7 +60,7 @@ def calculate_total_profit_per_trade(data, normalize=False):
     total_profit = (u.iloc[0] * 100 - 100) / 100 if len(qqq) > 0 else 1
 
     if normalize:
-        total_profit = total_profit / (data["Close"].iloc[-1] / data["Close"].iloc[0])
+        total_profit = total_profit / (data["Close"].max() / data["Close"].min())
 
     return total_profit
 
@@ -171,7 +171,7 @@ def generate_report_backtest(data, risk_free_rate=0.0):
     print(f"Total Return (%): {(data["Daily_Returns"]).sum() * 100:.2f}")
 
     print("\nBacktesting Report:")
-    print(f"Total profit multiple all trades normelized to buy&hold profit: {calculate_total_profit_per_trade(data, normalize=True):.2f}")
+    print(f"Total profit multiple all trades normelized to max price change profit: {calculate_total_profit_per_trade(data, normalize=True):.2f}")
     print(f"Total Return (%): {100 * (data["Position"] * data["Daily_Returns"]).sum():.2f}")
     print(f"Long Return (%): {100 * (data["Signal_long"] * data["Daily_Returns"]).sum():.2f}")
     print(f"Short Return (%): {-100 * (data["Signal_short"] * data["Daily_Returns"]).sum():.2f}")

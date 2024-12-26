@@ -151,8 +151,8 @@ if __name__ == "__main__":
     # ticker = "LVS"
     # ticker = "CMG"
     # ticker = "SPMO"
-    # ticker = "spy"
-    ticker = "U"
+    ticker = "spy"
+    # ticker = "U"
     # ticker = "JPM"
     # ticker = "AMD"
     # ticker = "nvda"
@@ -174,10 +174,10 @@ if __name__ == "__main__":
     # params = {'short_window': 5, 'long_window': 64*2, 'alfa_short': 100, 'alfa_long': 100, 'volume_power_short': 100, 'volume_power_long': 100}
     # params = {'short_window': 10, 'long_window': 64*2, 'alfa_short': 0, 'alfa_long': 0, 'volume_power_short': 150, 'volume_power_long': 100} # SPY short above price
     # params = {'short_window': 3, 'long_window': 52, 'alfa_short': 0, 'alfa_long': 0, 'volume_power_short': 184, 'volume_power_long': 120} # JPM short above price
-    params = {'short_window': 25, 'long_window': 98, 'alfa_short': 10, 'alfa_long': 0, 'volume_power_short': 162, 'volume_power_long': 92}
 
-    # params = {'short_window': 6, 'long_window': 219, 'alfa_short': 0, 'alfa_long': 0, 'volume_power_short': 130, 'volume_power_long': 98}
-    # params = {'short_window': 6, 'long_window': 217, 'alfa_short': 0, 'alfa_long': 0, 'volume_power_short': 185, 'volume_power_long': 97}
+    params = {'short_window': 61, 'long_window': 44, 'alfa_short': 10, 'alfa_long': 0, 'volume_power_short': 158, 'volume_power_long': 102, 'long_diff': 128, 'short_diff': 116} # JPM
+    params = {'short_window': 59, 'long_window': 256, 'alfa_short': 10, 'alfa_long': 0, 'volume_power_short': 169, 'volume_power_long': 91, 'long_diff': 240, 'short_diff': 56}
+
 
     # params = {'short_window': 27, 'long_window': 59, 'alfa_short': 47, 'alfa_long': 97, 'volume_power_short': 111, 'volume_power_long': 118} # TSLA
     # params = {'short_window': 19, 'long_window': 5, 'alfa_short': 52, 'alfa_long': 40, 'volume_power_short': 124, 'volume_power_long': 101} # F / TSLA
