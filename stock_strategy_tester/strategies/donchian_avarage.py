@@ -4,8 +4,8 @@ import pandas as pd
 from backtester.performance import generate_report_backtest
 
 
-def emvwap_strategy(short_window=63, long_window=63*4, alfa_short=50, alfa_long=50, volume_power_short=100,
-                    volume_power_long=100, sides="long", next_day_execution=True, return_line=False, stop_loss_days=300,
+def donchian_avarage_strategy(short_window=63, long_window=63*4, alfa_short=50, alfa_long=50, volume_power_short=100,
+                    volume_power_long=100, sides="long", next_day_execution=True, return_line=False, stop_loss_days=3,
                     long_diff=1, short_diff=1
 
                     ):
@@ -16,84 +16,93 @@ def emvwap_strategy(short_window=63, long_window=63*4, alfa_short=50, alfa_long=
 
                  ):
         """
-        Generate buy/sell signals based on Exponential Moving VWAP (EMVWAP) crossovers.
+        Generate buy/sell signals based on Exponential Moving VWAP (EMVWAP) and Donchian strategy
         """
         if not {"Close", "Volume", "High", "Low"}.issubset(data_s.columns):
             raise ValueError("Input data must contain 'Close', 'Volume', 'High', and 'Low' columns.")
 
-        # Helper: Calculate VWAP and Moving VWAP (MVWAP)
-        def calculate_mvwav(window, volume_power=100):
-            volume_power = volume_power / 100
-            # price_volume = (data_s["High"] + data_s["Low"] + data_s["Close"]) / 3 * data_s["Volume"]
-            price_volume = data_s["Open"] * data_s["Volume"] ** volume_power
-            rolling_price_volume = price_volume.rolling(window=window).sum()
-            rolling_volume = data_s["Volume"].rolling(window=window).sum()
-            return rolling_price_volume / rolling_volume ** volume_power
+        # Helper: Calculate Donchian Channel
+        def calculate_donchian(window):
+            high = data_s["High"].rolling(window=window).max()
+            low = data_s["Low"].rolling(window=window//2).min()
+            results = {"high": high, "low": low, "mid": (high + low) / 2}
+            return pd.DataFrame(results)
 
         # Helper: Calculate EM-VWAP
         def calculate_em_vwap(span, volume_power=100, day_price="Close"):
             volume_power = volume_power / 100
-            # price_volume = (data_s["High"] + data_s["Low"] + data_s["Close"]) / 3 * data_s["Volume"]
+            price_volume = (data_s["High"] + data_s["Low"] + data_s["Close"]) / 3 * data_s["Volume"]
             price_volume = data_s[day_price] * (data_s["Volume"] ** volume_power)
             ewma_price_volume = price_volume.ewm(span=span, adjust=False).mean()
             ewma_volume = data_s["Volume"].ewm(span=span, adjust=False).mean()
             return ewma_price_volume / (ewma_volume ** volume_power)
+            # return data_s[day_price].ewm(span=span, adjust=False).mean()
 
         # Calculate indicators
-        EMVWAP_Short = calculate_em_vwap(short_window, volume_power=volume_power_short, day_price="High")
+        donchian = calculate_donchian(short_window)
         EMVWAP_Long = calculate_em_vwap(long_window, volume_power=volume_power_long, day_price="Low")
+        EMVWAP_Short = calculate_em_vwap(short_window, volume_power=volume_power_short, day_price="High")
+        EMVWAP_Long_diff = EMVWAP_Long.diff(long_diff)
 
 
-        min_length = min(len(EMVWAP_Long), len(EMVWAP_Short))
+        min_length = min(len(EMVWAP_Long), len(EMVWAP_Long_diff), len(donchian))
         EMVWAP_Long = EMVWAP_Long[-min_length:]
         EMVWAP_Short = EMVWAP_Short[-min_length:]
-        slope_long_emvwap = EMVWAP_Long.diff(long_diff)[-min_length:] # 64 is the window TODO: Change to 1
-        slope_short_emvwap = EMVWAP_Short.diff(short_diff)[-min_length:] # 20 is the window TODO: Change to 1
-        price = data_s["High"].copy()[-min_length:]
+        price = data_s["Open"].copy()[-min_length:]
+        donchian = donchian[-min_length:]
 
         # Determine conditions
         # Note:
-        # Slope is not useful
 
-        # Long condition
-        alfa_long = alfa_long / 100       # LONG 0.65
-        EMVWAP_long_calc = alfa_long * price + (1 - alfa_long) * EMVWAP_Long
-        long_condition = (price * 0.985 > EMVWAP_long_calc) & (EMVWAP_long_calc.diff(long_diff) > 0)
-        long_condition = (EMVWAP_long_calc.diff(long_diff) > 0) & (price > EMVWAP_Short) # TODO: Change <to 0.985
+        # EMVWAP long condition
+        alfa_long = alfa_long / 1000
+        EMVWAP_long_calc = (1 + alfa_long) * EMVWAP_Long + (alfa_long) * EMVWAP_Short
+        long_condition1 = (EMVWAP_long_calc.diff(long_diff) > 0.0)
+        long_condition1 = long_condition1 & (price > EMVWAP_Short)
 
-        # Short condition
-        alfa_short = alfa_short / 100       # SHORT 0.65
-        EMVWAP_short_calc = alfa_short * price + (1 - alfa_short) * EMVWAP_Short
-        short_condition = (price * 1.015 < EMVWAP_short_calc) #& (EMVWAP_short_calc.diff(short_diff) < 0) # TODO: Change <to 1.015
-        short_condition = (EMVWAP_long_calc.diff(long_diff) < 0) & (price < EMVWAP_Short) # TODO: Change <to 0.985
+        # donchian Short condition
+        donchian["Signal_long"] = float('nan')
+        donchian["Signal_short"] = float('nan')
 
+        alfa_short = (alfa_short / 1000) + 1
+
+        # Exit signal: Sell when Close crosses below the Lower band
+        lower_cond_l = (price < alfa_short * donchian['high'].shift(1)) | (price > EMVWAP_long_calc)
+        lower_cond_s = price > alfa_short * donchian['low'].shift(1)
+        donchian.loc[lower_cond_l, 'Signal_long'] = 1
+        donchian.loc[lower_cond_s, 'Signal_short'] = 1
+
+        # # Entry signal: Buy when Close crosses above the Upper band
+        # upper_cond = price > (2-alfa_short) * donchian['mid'].shift(1)
+        # donchian.loc[upper_cond, 'Signal_long'] = 1
+        # donchian.loc[~upper_cond, 'Signal_short'] = 1
+
+
+        donchian["Signal_long"] = donchian["Signal_long"].fillna(0)
+        donchian["Signal_short"] = donchian["Signal_short"].fillna(0)
+
+
+        # ONLY LONG
+        long_condition = long_condition1 & donchian["Signal_long"]
+        short_condition = ~long_condition1 & donchian["Signal_short"]
 
         # Ensure conditions last at least # days
-        days = 2
+        days = stop_loss_days
         long_condition = long_condition.rolling(window=days).sum() == days
         short_condition = (short_condition.rolling(window=days).sum() == days)
-
-
-        # # # STOP-LOSS (If the price in the current trade gets lower in 2% from the maximum price, close the trade)
-        # stop_loss_flag = ~(price < price.rolling(window=stop_loss_days).max() * 0.98)
-        # sl_2_condition = (price > price.rolling(window=5).mean()) & stop_loss_flag
-        # long_condition = long_condition & sl_2_condition
-        # # short_condition = short_condition & (price < price.rolling(window=stop_loss_days).min() * 1.02)
 
         # Initialize position signals
         position = pd.Series(0, index=data_s.index)
 
         # Assign positions only at entry points
-        long_entry = long_condition
-        short_entry = short_condition
-        position.loc[long_entry] = 1  # Long entry
-        position.loc[short_entry] = -1  # Short entry
+        position.loc[long_condition] = 1  # Long entry
+        position.loc[short_condition] = -1  # Short entry
 
         # Forward-fill the positions to maintain them until the next change in the condition
         position = position.replace(0, np.nan)
         position = position.ffill().fillna(0)
         position.loc[(long_condition == False) & (short_condition == False)] = 0 # No position if both are false
-        position.loc[(long_entry == True) & (short_entry == True)] = 0  # No position if both are true
+        position.loc[(long_condition == True) & (short_condition == True)] = 0  # No position if both are true
 
         # Remove invalid sides
         if sides == "long":
@@ -125,7 +134,9 @@ def emvwap_strategy(short_window=63, long_window=63*4, alfa_short=50, alfa_long=
         )
 
         if return_line:
-            lines = {'long': EMVWAP_long_calc, 'short': EMVWAP_short_calc}
+            sl = alfa_short * donchian['high'].shift(1)
+            # donchian_short_calc = donchian_short_calc
+            lines = {'long': EMVWAP_long_calc, 'short': sl}#donchian_short_calc}
             return data_s["long_signal"], data_s["short_signal"], lines
 
         return data_s["long_signal"], data_s["short_signal"]
@@ -150,6 +161,6 @@ if __name__ == "__main__":
     # Initialize backtester
     backtester = Backtester(data)
     # Run the backtest
-    results = backtester.run(emvwap_strategy(short_window=5, long_window=15))
+    results = backtester.run(donchian_avarage_strategy(short_window=5, long_window=15))
 
     generate_report_backtest(results['data'])

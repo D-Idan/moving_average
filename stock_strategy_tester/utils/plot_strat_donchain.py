@@ -5,6 +5,7 @@ import numpy as np
 import pandas as pd
 
 from backtester.performance import generate_report_backtest
+from strategies.donchian_avarage import donchian_avarage_strategy
 from strategies.emvwap import emvwap_strategy
 
 
@@ -151,9 +152,9 @@ if __name__ == "__main__":
     # ticker = "LVS"
     # ticker = "CMG"
     # ticker = "SPMO"
-    # ticker = "spy"
+    ticker = "spy"
     # ticker = "U"
-    ticker = "JPM"
+    # ticker = "JPM"
     # ticker = "AMD"
     # ticker = "nvda"
     # ticker = "AXP"
@@ -161,6 +162,7 @@ if __name__ == "__main__":
     # ticker = "AAPL"
     # ticker = "COST"
     # ticker = "USDGBP=X"
+
 
     start_date = "2020-01-01"
     # start_date = "2000-01-01"
@@ -172,24 +174,26 @@ if __name__ == "__main__":
     data.index = pd.to_datetime(data["Date"])
 
     # Strategy
-    params = {'short_window': 5, 'long_window': 64*2, 'alfa_short': 0, 'alfa_long': 0, 'volume_power_short': 100, 'volume_power_long': 100}
+    # params = {'short_window': 64, 'long_window': 64*4, 'alfa_short': 0, 'alfa_long': 0, 'volume_power_short': 100, 'volume_power_long': 100}
     # params = {'short_window': 5, 'long_window': 64, 'alfa_short': 100, 'alfa_long': 100, 'volume_power_short': 100, 'volume_power_long': 100}
     # params = {'short_window': 5, 'long_window': 64*2, 'alfa_short': 100, 'alfa_long': 100, 'volume_power_short': 100, 'volume_power_long': 100}
     # params = {'short_window': 10, 'long_window': 64*2, 'alfa_short': 0, 'alfa_long': 0, 'volume_power_short': 150, 'volume_power_long': 100} # SPY short above price
     # params = {'short_window': 3, 'long_window': 52, 'alfa_short': 0, 'alfa_long': 0, 'volume_power_short': 184, 'volume_power_long': 120} # JPM short above price
 
-    # params = {'short_window': 61, 'long_window': 44, 'alfa_short': 10, 'alfa_long': 0, 'volume_power_short': 158, 'volume_power_long': 102, 'long_diff': 128, 'short_diff': 116} # JPM
-    # params = {'short_window': 244, 'long_window': 202, 'alfa_short': 50, 'alfa_long': 0, 'volume_power_short': 150, 'volume_power_long': 90, 'long_diff': 96, 'short_diff': 116}
-    params = {'short_window': 279, 'long_window': 244, 'alfa_short': 10, 'alfa_long': 0, 'volume_power_short': 190, 'volume_power_long': 140, 'long_diff': 248, 'short_diff': 128}
+    # params = {'short_window': 202, 'long_window': 256, 'alfa_short': 90, 'alfa_long': 30, 'volume_power_short': 180, 'volume_power_long': 90, 'long_diff': 16}
+    # params = {'short_window': 125, 'long_window': 232, 'alfa_short': 90, 'alfa_long': 10, 'volume_power_long': 100, 'long_diff': 80}
+    # params = {'short_window': 153, 'long_window': 196, 'alfa_short': 70, 'alfa_long': 0, 'volume_power_long': 60, 'long_diff': 88}
+    params = {'short_window': 360, 'long_window': 18, 'alfa_short': 10, 'alfa_long': 40, 'volume_power_long': 80, 'long_diff': 104, 'stop_loss_days': 3} # DONCHIAN both
+
 
 
     # params = {'short_window': 27, 'long_window': 59, 'alfa_short': 47, 'alfa_long': 97, 'volume_power_short': 111, 'volume_power_long': 118} # TSLA
     # params = {'short_window': 19, 'long_window': 5, 'alfa_short': 52, 'alfa_long': 40, 'volume_power_short': 124, 'volume_power_long': 101} # F / TSLA
     # params = {'short_window': 22, 'long_window': 59, 'alfa_short': 14, 'alfa_long': 49, 'volume_power_short': 101, 'volume_power_long': 112} # FCX
     params['next_day_execution'] = True
-    params['sides'] = "long"
+    params['sides'] = "both"
 
-    strategy = emvwap_strategy(**params)
+    strategy = donchian_avarage_strategy(**params)
 
 
     # Initialize backtester

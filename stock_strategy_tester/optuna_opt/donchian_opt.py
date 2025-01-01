@@ -46,7 +46,10 @@ sides = "long"
 
 # Define initial trial parameters
 initial_params = [
-{'short_window': 202, 'long_window': 256, 'alfa_short': 90, 'alfa_long': 30, 'volume_power_short': 180, 'volume_power_long': 90, 'long_diff': 16}, # DONCHIAN
+{'short_window': 360, 'long_window': 18, 'alfa_short': 10, 'alfa_long': 40, 'volume_power_long': 80, 'long_diff': 104, 'stop_loss_days': 3}, # DONCHIAN both
+{'short_window': 432, 'long_window': 12, 'alfa_short': 0, 'alfa_long': 50, 'volume_power_long': 80, 'long_diff': 112, 'stop_loss_days': 18}, # DONCHIAN both
+{'short_window': 328, 'long_window': 12, 'alfa_short': 70, 'alfa_long': 10, 'volume_power_long': 70, 'long_diff': 128, 'stop_loss_days': 3}, # DONCHIAN
+{'short_window': 209, 'long_window': 18, 'alfa_short': 0, 'alfa_long': 10, 'volume_power_long': 100, 'long_diff': 104}, # DONCHIAN
     {"short_window": 63, "long_window": 63*4, "alfa_short": 0, "alfa_long": 0, "volume_power_short": 100, "volume_power_long": 100},
     {'short_window': 5, 'long_window': 470, 'alfa_short': 1, 'alfa_long': 3, 'volume_power_short': 160, 'volume_power_long': 47},
     {'short_window': 5, 'long_window': 25, 'alfa_short': 108, 'alfa_long': 137, 'volume_power_short': 88, 'volume_power_long': 89},
@@ -60,8 +63,8 @@ def loss_flow(strategy, data_pd):
     results = backtester.run(strategy)
 
     # Calculate total return as the optimization target
-    loss = -profit_loss(results["data"], all_positions=False, normalize=True, add_cumulative=True)
-    # loss = profit_time_loss(results["data"], w_profit=1, w_time=1)
+    # loss = -profit_loss(results["data"], all_positions=False, normalize=True, add_cumulative=True)
+    loss = profit_time_loss(results["data"], w_profit=1, w_time=1)
     # loss = sharp_ratio_loss(results["data"])
     # loss = profit_ratio_loss(results["data"], w_profit=0.0, w_time=0.1, w_ratio=0.9, w_entry=0.0)
 
@@ -91,18 +94,18 @@ def load_data_for_testing(ticker, start_date, end_date):
 data = load_data_for_testing(ticker, start_date, end_date)
 
 
-
 # Objective function for Optuna
 def objective(trial):
     # Define hyperparameters to optimize
-    short_window = trial.suggest_int("short_window", 20, 64*2, step=9)  # Range for short_window
-    long_window = trial.suggest_int("long_window", 64*2, 64*4, step=8)  # Range for long_window
+    short_window = trial.suggest_int("short_window", 63*2, 63*8, step=18)  # Range for short_window
+    long_window = trial.suggest_int("long_window", 6, 66, step=6)  # Range for long_window
     alfa_short = trial.suggest_int("alfa_short", 0, 100, step=10)  # Range for alfa_short (percentage)
     alfa_long = trial.suggest_int("alfa_long", 0, 100, step=10)  # Range for alfa_long (percentage)
-    volume_power_short = trial.suggest_int("volume_power_short", 110, 190, step=10)  # Range for volume_power_short # DONCHIAN
-    volume_power_long = trial.suggest_int("volume_power_long", 50, 150, step=10)  # Range for volume_power_long
-    long_diff = trial.suggest_int("long_diff", 0, 64*4, step=8)
-    short_diff = trial.suggest_int("short_diff", 0, 64*2, step=4) # DONCHIAN
+    # volume_power_short = trial.suggest_int("volume_power_short", 110, 190, step=10)  # Range for volume_power_short # DONCHIAN
+    volume_power_long = trial.suggest_int("volume_power_long", 70, 130, step=10)  # Range for volume_power_long
+    long_diff = trial.suggest_int("long_diff", 0, 64, step=8)
+    stop_loss_days = trial.suggest_int("stop_loss_days", 0, 12, step=3)
+    # short_diff = trial.suggest_int("short_diff", 0, 64*2, step=4) # DONCHIAN
 
     # Create the strategy with sampled hyperparameters
     strategy = strategy_selected(
@@ -110,10 +113,11 @@ def objective(trial):
         long_window=long_window,
         alfa_short=alfa_short,
         alfa_long=alfa_long,
-        volume_power_short=volume_power_short, # DONCHIAN
+        # volume_power_short=volume_power_short, # DONCHIAN
         volume_power_long=volume_power_long,
         long_diff=long_diff,
-        short_diff=short_diff, # DONCHIAN
+        stop_loss_days=stop_loss_days,
+        # short_diff=short_diff, # DONCHIAN
         sides=sides,
     )
 
@@ -144,10 +148,11 @@ if __name__ == "__main__":
         long_window=best_params["long_window"],
         alfa_short=best_params["alfa_short"],
         alfa_long=best_params["alfa_long"],
-        volume_power_short=best_params["volume_power_short"], # DONCHIAN
+        # volume_power_short=best_params["volume_power_short"], # DONCHIAN
         volume_power_long=best_params["volume_power_long"],
         long_diff=best_params["long_diff"],
-        short_diff=best_params["short_diff"], # DONCHIAN
+        stop_loss_days=best_params["stop_loss_days"],
+        # short_diff=best_params["short_diff"], # DONCHIAN
         sides=sides,
     )
 

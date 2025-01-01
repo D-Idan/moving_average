@@ -104,10 +104,15 @@ def profit_ratio_loss(data, w_profit=0.5, w_time=0.3, w_ratio=0.2, w_entry=0.1):
     time_penalty = time_in_market + 1  # This is already normalized (0 to 1)
 
     # short_signal touch lows for entrance to long position
-    entry_long = (abs(data["short_signal"] - data["Low"]) / (data["Low"])).sum()
+    benchmark = abs(data["Low"] - data["Low"].mean()).sum()
+    # Bull market
+    entry_long = ( (abs(data["long_signal"] - data["Low"]) / benchmark ) * data["long_signal"]).sum()
+    # Bear market
+    entry_short = ( (abs(data["long_signal"] - data["High"]) / benchmark ) * data["short_signal"]).sum()
+    entry = entry_long # + entry_short
 
     # Calculate loss We need to minimize the loss
-    loss = -(w_profit * profit_score / w_time * time_penalty) - w_ratio * profitable_ratio - w_entry * entry_long
+    loss = -(w_profit * profit_score / (w_time * time_penalty + 1)) - w_ratio * profitable_ratio - w_entry * entry
 
     return loss
 
