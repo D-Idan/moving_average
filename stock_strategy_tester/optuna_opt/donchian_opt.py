@@ -32,7 +32,12 @@ ticker = "SPY"
 # ticker = ["cost"]
 # ticker = "USDGBP=X"
 
+data_interval = "1mo"
+data_interval = "1d"
+# data_interval = "1h"
+period = None #"7d"
 start_date = "2000-01-01"
+# start_date = "2017-01-01"
 end_date = "2020-01-01"
 # end_date = datetime.now().strftime("%Y-%m-%d")
 
@@ -41,8 +46,8 @@ end_date = "2020-01-01"
 strategy_selected = donchian_avarage_strategy
 
 # Number of trials
-n_trials = 200000
-sides = "long"
+n_trials = 20000
+sides = "short"
 
 # Define initial trial parameters
 initial_params = [
@@ -63,8 +68,8 @@ def loss_flow(strategy, data_pd):
     results = backtester.run(strategy)
 
     # Calculate total return as the optimization target
-    # loss = -profit_loss(results["data"], all_positions=False, normalize=True, add_cumulative=True)
-    loss = profit_time_loss(results["data"], w_profit=1, w_time=1)
+    loss = -profit_loss(results["data"], all_positions=False, normalize=True, add_cumulative=False)
+    # loss = profit_time_loss(results["data"], w_profit=1, w_time=1)
     # loss = sharp_ratio_loss(results["data"])
     # loss = profit_ratio_loss(results["data"], w_profit=0.0, w_time=0.1, w_ratio=0.9, w_entry=0.0)
 
@@ -75,7 +80,7 @@ def add_initial_trials(study, initial_params):
     for params in initial_params:
         study.enqueue_trial(params)
 def postprocess_data(ticker, start_date, end_date):
-    raw_data = load_data(ticker, start_date, end_date)
+    raw_data = load_data(ticker, start_date, end_date, interval=data_interval, period=period)
     data_p = preprocess_data(raw_data)
     data_p.index = pd.to_datetime(data_p["Date"])
     return data_p
@@ -104,7 +109,7 @@ def objective(trial):
     # volume_power_short = trial.suggest_int("volume_power_short", 110, 190, step=10)  # Range for volume_power_short # DONCHIAN
     volume_power_long = trial.suggest_int("volume_power_long", 70, 130, step=10)  # Range for volume_power_long
     long_diff = trial.suggest_int("long_diff", 0, 64, step=8)
-    stop_loss_days = trial.suggest_int("stop_loss_days", 0, 12, step=3)
+    stop_loss_days = trial.suggest_int("stop_loss_days", 1, 5, step=1)
     # short_diff = trial.suggest_int("short_diff", 0, 64*2, step=4) # DONCHIAN
 
     # Create the strategy with sampled hyperparameters

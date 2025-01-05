@@ -59,7 +59,7 @@ def emvwap_strategy(short_window=63, long_window=63*4, alfa_short=50, alfa_long=
         alfa_long = alfa_long / 100       # LONG 0.65
         EMVWAP_long_calc = alfa_long * price + (1 - alfa_long) * EMVWAP_Long
         long_condition = (price * 0.985 > EMVWAP_long_calc) & (EMVWAP_long_calc.diff(long_diff) > 0)
-        long_condition = (EMVWAP_long_calc.diff(long_diff) > 0) & (price > EMVWAP_Short) # TODO: Change <to 0.985
+        long_condition = (EMVWAP_long_calc.diff(long_diff) >= 0) & (price > EMVWAP_Short) # TODO: Change <to 0.985
 
         # Short condition
         alfa_short = alfa_short / 100       # SHORT 0.65

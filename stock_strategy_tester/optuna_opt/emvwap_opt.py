@@ -2,6 +2,7 @@ from datetime import datetime
 
 import optuna
 import pandas as pd
+from sympy.plotting.intervalmath import interval
 
 from backtester.backtester import Backtester
 from backtester.performance import generate_report_backtest
@@ -32,6 +33,9 @@ ticker = "SPY"
 # ticker = ["cost"]
 # ticker = "USDGBP=X"
 
+# data_interval = "1d"
+data_interval = "5d"
+# data_interval = "30m"
 start_date = "2000-01-01"
 end_date = "2020-01-01"
 # end_date = datetime.now().strftime("%Y-%m-%d")
@@ -41,11 +45,12 @@ end_date = "2020-01-01"
 strategy_selected = donchian_avarage_strategy
 
 # Number of trials
-n_trials = 200000
+n_trials = 2000
 sides = "long"
 
 # Define initial trial parameters
 initial_params = [
+{'short_window': 101, 'long_window': 168, 'alfa_short': 40, 'alfa_long': 0, 'volume_power_short': 110, 'volume_power_long': 50, 'long_diff': 8, 'short_diff': 80},# 5D
 {'short_window': 202, 'long_window': 256, 'alfa_short': 90, 'alfa_long': 30, 'volume_power_short': 180, 'volume_power_long': 90, 'long_diff': 16}, # DONCHIAN
     {"short_window": 63, "long_window": 63*4, "alfa_short": 0, "alfa_long": 0, "volume_power_short": 100, "volume_power_long": 100},
     {'short_window': 5, 'long_window': 470, 'alfa_short': 1, 'alfa_long': 3, 'volume_power_short': 160, 'volume_power_long': 47},
@@ -72,7 +77,7 @@ def add_initial_trials(study, initial_params):
     for params in initial_params:
         study.enqueue_trial(params)
 def postprocess_data(ticker, start_date, end_date):
-    raw_data = load_data(ticker, start_date, end_date)
+    raw_data = load_data(ticker, start_date, end_date, interval=data_interval)
     data_p = preprocess_data(raw_data)
     data_p.index = pd.to_datetime(data_p["Date"])
     return data_p

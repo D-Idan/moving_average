@@ -55,8 +55,8 @@ def donchian_avarage_strategy(short_window=63, long_window=63*4, alfa_short=50, 
         # Note:
 
         # EMVWAP long condition
-        alfa_long = alfa_long / 1000
-        EMVWAP_long_calc = (1 + alfa_long) * EMVWAP_Long + (alfa_long) * EMVWAP_Short
+        alfa_long = alfa_long / 100
+        EMVWAP_long_calc = (1 - alfa_long) * EMVWAP_Long + (alfa_long) * EMVWAP_Short
         long_condition1 = (EMVWAP_long_calc.diff(long_diff) > 0.0)
         long_condition1 = long_condition1 & (price > EMVWAP_Short)
 
@@ -67,8 +67,8 @@ def donchian_avarage_strategy(short_window=63, long_window=63*4, alfa_short=50, 
         alfa_short = (alfa_short / 1000) + 1
 
         # Exit signal: Sell when Close crosses below the Lower band
-        lower_cond_l = (price < alfa_short * donchian['high'].shift(1)) | (price > EMVWAP_long_calc)
-        lower_cond_s = price > alfa_short * donchian['low'].shift(1)
+        lower_cond_l = (price > alfa_short * donchian['low'].shift(1)) #| (price > EMVWAP_long_calc)
+        lower_cond_s = alfa_short * price > donchian['high'].shift(1)
         donchian.loc[lower_cond_l, 'Signal_long'] = 1
         donchian.loc[lower_cond_s, 'Signal_short'] = 1
 

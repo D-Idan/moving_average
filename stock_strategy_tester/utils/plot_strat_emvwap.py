@@ -5,6 +5,7 @@ import numpy as np
 import pandas as pd
 
 from backtester.performance import generate_report_backtest
+from optuna_opt.emvwap_opt import data_interval
 from strategies.emvwap import emvwap_strategy
 
 
@@ -162,12 +163,15 @@ if __name__ == "__main__":
     # ticker = "COST"
     # ticker = "USDGBP=X"
 
+    # Load and preprocess data
+    data_interval = "5d"
+
     start_date = "2020-01-01"
     # start_date = "2000-01-01"
     # Today date
     # end_date = "2021-01-01"
     end_date = datetime.now().strftime("%Y-%m-%d")
-    raw_data = load_data(ticker, start_date, end_date)
+    raw_data = load_data(ticker, start_date, end_date, interval=data_interval)
     data = preprocess_data(raw_data)
     data.index = pd.to_datetime(data["Date"])
 
@@ -180,8 +184,10 @@ if __name__ == "__main__":
 
     # params = {'short_window': 61, 'long_window': 44, 'alfa_short': 10, 'alfa_long': 0, 'volume_power_short': 158, 'volume_power_long': 102, 'long_diff': 128, 'short_diff': 116} # JPM
     # params = {'short_window': 244, 'long_window': 202, 'alfa_short': 50, 'alfa_long': 0, 'volume_power_short': 150, 'volume_power_long': 90, 'long_diff': 96, 'short_diff': 116}
-    params = {'short_window': 279, 'long_window': 244, 'alfa_short': 10, 'alfa_long': 0, 'volume_power_short': 190, 'volume_power_long': 140, 'long_diff': 248, 'short_diff': 128}
+    # params = {'short_window': 279, 'long_window': 244, 'alfa_short': 10, 'alfa_long': 0, 'volume_power_short': 190, 'volume_power_long': 140, 'long_diff': 248, 'short_diff': 128}
 
+    params = {'short_window': 101, 'long_window': 240, 'alfa_short': 40, 'alfa_long': 40, 'volume_power_short': 110, 'volume_power_long': 60, 'long_diff': 0, 'short_diff': 12} # 5D spy
+    params = {'short_window': 101, 'long_window': 168, 'alfa_short': 40, 'alfa_long': 0, 'volume_power_short': 110, 'volume_power_long': 50, 'long_diff': 8, 'short_diff': 80}# 5D spy
 
     # params = {'short_window': 27, 'long_window': 59, 'alfa_short': 47, 'alfa_long': 97, 'volume_power_short': 111, 'volume_power_long': 118} # TSLA
     # params = {'short_window': 19, 'long_window': 5, 'alfa_short': 52, 'alfa_long': 40, 'volume_power_short': 124, 'volume_power_long': 101} # F / TSLA

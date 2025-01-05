@@ -2,7 +2,7 @@ import yfinance as yf
 import pandas as pd
 
 
-def load_data(ticker, start_date, end_date):
+def load_data(ticker, start_date, end_date, interval="1d", **kwargs):
     """
     Load historical stock market data using yfinance.
 
@@ -12,7 +12,7 @@ def load_data(ticker, start_date, end_date):
     :return: DataFrame with historical stock data.
     """
     print(f"Fetching data for {ticker} from {start_date} to {end_date}...")
-    data = yf.download(ticker, start=start_date, end=end_date)
+    data = yf.download(ticker, start=start_date, end=end_date, interval=interval, **kwargs)
     if data.empty:
         raise ValueError(f"No data found for ticker {
                          ticker} in the given date range.")
