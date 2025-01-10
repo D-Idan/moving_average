@@ -14,27 +14,20 @@ def emvwap_strategy_with_reset(
     sides="long",
     next_day_execution=True,
     return_line=False,
-    stop_loss_days=1,
+    confirm_days=2,
     long_diff=1,
     short_diff=1,
     reset_window=10  # New parameter: Number of days to look back for price drops
 ):
-    def strategy(data_s, **kwargs):
+    def strategy(data_s, alfa_short=alfa_short, alfa_long=alfa_long, short_window=short_window, long_window=long_window,
+                 volume_power_short=volume_power_short, volume_power_long=volume_power_long, return_line=return_line, sides=sides,
+                 next_day_execution=next_day_execution, confirm_days=confirm_days, long_diff=long_diff, short_diff=short_diff,
+                 reset_window=reset_window
+
+                 ):
         """
         Generate buy/sell signals with Exponential Moving VWAP (EMVWAP) crossovers and reset logic.
         """
-        # Get parameters
-        short_window = kwargs.get("short_window", 63)
-        long_window = kwargs.get("long_window", 63 * 4)
-        volume_power_short = kwargs.get("volume_power_short", 100)
-        volume_power_long = kwargs.get("volume_power_long", 100)
-        sides = kwargs.get("sides", "long")
-        next_day_execution = kwargs.get("next_day_execution", True)
-        return_line = kwargs.get("return_line", False)
-        stop_loss_days = kwargs.get("stop_loss_days", 1)
-        long_diff = kwargs.get("long_diff", 1)
-        short_diff = kwargs.get("short_diff", 1)
-        reset_window = kwargs.get("reset_window", 10)
 
         if not {"Close", "Volume", "High", "Low"}.issubset(data_s.columns):
             raise ValueError("Input data must contain 'Close', 'Volume', 'High', and 'Low' columns.")
@@ -50,36 +43,60 @@ def emvwap_strategy_with_reset(
 
         # Initialize EMVWAP values
         EMVWAP_Short = calculate_em_vwap(short_window, volume_power=volume_power_short, day_price="High", start_index=0)
-        EMVWAP_Long = calculate_em_vwap(long_window, volume_power=volume_power_long, day_price="Low", start_index=0)
-
-        # Initialize variables for reset logic
-        last_reset_index = None
+        EMVWAP_Long = calculate_em_vwap(long_window, volume_power=volume_power_long, day_price="Close", start_index=0)
 
         # Tracking minimum prices
         rolling_min_price = data_s["Open"].rolling(window=reset_window).min()
 
+        # Identify rows where the reset condition occurs
+        reset_condition = data_s["Close"] < rolling_min_price
+
+        # Calculate EMVWAP values only at reset points
+        reset_indices = np.where(reset_condition)[0]
+        if len(reset_indices) > 0:
+            # emvwap_short_reset = np.full_like(data_s["Close"], np.nan, dtype=float)
+            emvwap_short_reset = EMVWAP_Short
+            for idx in reset_indices:
+                emvwap_short_reset[idx:] = calculate_em_vwap(
+                    short_window,
+                    volume_power=volume_power_short,
+                    day_price="High",
+                    start_index=idx
+                )
+            EMVWAP_Short = pd.Series(emvwap_short_reset, index=data_s.index)
+        else:
+            EMVWAP_Short = calculate_em_vwap(
+                short_window,
+                volume_power=volume_power_short,
+                day_price="High",
+                start_index=0
+            )
+
         # Initialize position signals
-        position = pd.Series(0, index=data_s.index)
+        position = pd.Series(np.nan, index=data_s.index)
 
-        for idx in range(len(data_s)):
-            if last_reset_index is None or idx >= last_reset_index:
-                # Get current data slice
-                current_price = data_s["Close"].iloc[idx]
 
-                # Check for reset condition
-                if current_price < rolling_min_price.iloc[idx]:
-                    last_reset_index = idx
-                    EMVWAP_Short[idx:] = calculate_em_vwap(short_window, volume_power=volume_power_short, day_price="High", start_index=idx)
-                    continue
+        long_condition = (data_s["Close"] > EMVWAP_Short) & (EMVWAP_Long.diff(long_diff) > 0)
+        # short_condition = (data_s["Close"] < EMVWAP_Short) & (EMVWAP_Long.diff(long_diff) < 0)
+        # long_condition = ((EMVWAP_Short.diff(long_diff) > 0) | (data_s["Close"] > EMVWAP_Short)) & (EMVWAP_Long.diff(long_diff) > 0)
+        # short_condition = (EMVWAP_Short.diff(long_diff) < 0) & (EMVWAP_Long.diff(long_diff) < 0)
+        # long_condition = (data_s["Close"] > EMVWAP_Short)
+        # short_condition = (data_s["Close"] > EMVWAP_Short)
+        # long_condition = (data_s["Close"] < EMVWAP_Short) & (EMVWAP_Long.diff(long_diff) > 0)
+        # short_condition = (data_s["Close"] > EMVWAP_Short) & (EMVWAP_Long.diff(long_diff) < 0)
+        short_condition = (EMVWAP_Long.diff(long_diff) <= 0)
 
-                long_condition = (current_price > EMVWAP_Short.iloc[idx]) & (EMVWAP_Long.diff(long_diff).iloc[idx] > 0)
-                short_condition = (current_price < EMVWAP_Short.iloc[idx]) & (EMVWAP_Long.diff(long_diff).iloc[idx] < 0)
+        # Two-day confirmation for long_condition
+        confirm_days = confirm_days
+        confirmed_long_confirmation = long_condition.rolling(window=confirm_days).sum() == confirm_days
+        confirmed_long_confirmation2 = ((data_s["Close"] < EMVWAP_Short) & (EMVWAP_Long.diff(long_diff) > 0)).rolling(window=confirm_days).sum() == confirm_days
+        confirmed_long_condition = (confirmed_long_confirmation | confirmed_long_confirmation2)
+        # confirmed_long_condition = long_condition
 
-                # Assign positions
-                if long_condition:
-                    position.iloc[idx] = 1
-                elif short_condition:
-                    position.iloc[idx] = -1
+        # Assign positions
+        long_condition = confirmed_long_condition
+        position[long_condition] = 1
+        position[short_condition] = -1
 
         # Remove invalid sides
         if sides == "long":
@@ -90,9 +107,10 @@ def emvwap_strategy_with_reset(
             raise ValueError("Invalid value for 'sides'. Must be 'both', 'long', or 'short'.")
 
         # Forward-fill the positions to maintain them until the next change in the condition
-        position = position.replace(0, np.nan)
-        position = position.ffill().fillna(0)
-        position.loc[(position.shift(1) == 1) & (data_s["Close"] < rolling_min_price)] = 0  # Reset long position if price drops
+        # position = position.ffill().fillna(0)
+        position.loc[(long_condition == False) & (short_condition == False)] = 0  # No position if both are false
+        position.loc[(long_condition == True) & (short_condition == True)] = 0  # No position if both are true
+        # position.loc[(position == 1) & (data_s["Close"] < rolling_min_price)] = 0  # Reset long position if price drops
 
         # Return the positions as signals
         long_signal = (position == 1).astype(int)
@@ -100,8 +118,8 @@ def emvwap_strategy_with_reset(
 
         # Shift signals forward by one period for next-day execution
         if next_day_execution:
-            long_signal = long_signal.shift(stop_loss_days)
-            short_signal = short_signal.shift(stop_loss_days)
+            long_signal = long_signal.shift(1)
+            short_signal = short_signal.shift(1)
 
         # Drop any rows where signals are NaN due to the shift
         data_s["long_signal"] = long_signal

@@ -33,8 +33,8 @@ ticker = "SPY"
 # ticker = ["cost"]
 # ticker = "USDGBP=X"
 
-# data_interval = "1d"
-data_interval = "5d"
+data_interval = "1d"
+# data_interval = "5d"
 # data_interval = "30m"
 start_date = "2000-01-01"
 end_date = "2020-01-01"
@@ -68,7 +68,7 @@ def loss_flow(strategy, data_pd):
     loss = -profit_loss(results["data"], all_positions=False, normalize=True, add_cumulative=True)
     # loss = profit_time_loss(results["data"], w_profit=1, w_time=1)
     # loss = sharp_ratio_loss(results["data"])
-    # loss = profit_ratio_loss(results["data"], w_profit=0.0, w_time=0.1, w_ratio=0.9, w_entry=0.0)
+    # loss = profit_ratio_loss(results["data"], w_profit=0.0, w_time=0.0, w_ratio=0.9, w_entry=0.0)
 
     return loss
 

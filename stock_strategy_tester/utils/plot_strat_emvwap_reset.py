@@ -7,6 +7,7 @@ import pandas as pd
 from backtester.performance import generate_report_backtest
 from optuna_opt.emvwap_opt import data_interval
 from strategies.emvwap import emvwap_strategy
+from strategies.emvwap_reset import emvwap_strategy_with_reset
 
 
 def plot_strategy_results(data, lines, results):
@@ -16,6 +17,17 @@ def plot_strategy_results(data, lines, results):
     :param lines: A dictionary containing the EMVWAP long and short lines.
     :param results: The backtest results containing trades and performance.
     """
+    ### Avoid plotting the artificial exit line
+    # Define the start and end limits for the x-axis
+    start_date = data.index.min()  # First date in the dataset
+    end_date = data.index[-1]  # Last date in the dataset
+    # Add an additional row to avoid plotting the artificial line
+    last_date = data.index[-1]
+    next_date = last_date + pd.Timedelta(days=1)  # Increment the last date by one day
+    additional_row = data.iloc[-1].copy()  # Duplicate the last row
+    additional_row.name = next_date  # Set the new index
+    data = pd.concat([data, pd.DataFrame([additional_row])])   # Append the new row
+
     price = data["Close"]
     long_line = lines["long"]
     short_line = lines["short"]
@@ -124,11 +136,14 @@ def plot_strategy_results(data, lines, results):
             exit_date = trade_data.index[-1]  # Exit point (last date of trade)
 
             # Draw vertical lines for entry and exit points
+            print(f"Entry: {entry_date}, Exit: {exit_date}, Last Date: {data.index[-1]}")
             plt.axvline(x=entry_date, color='green', linestyle='-', alpha=0.5, label="Entry Point" if idx == 0 else "")
             plt.axvline(x=exit_date, color='red', linestyle='-', alpha=0.5, label="Exit Point" if idx == 0 else "")
 
     # Add labels, legend, and title
     plt.title(f"EMVWAP Strategy Performance")
+    # Set the x-axis limits
+    plt.xlim([start_date, end_date])  # Restrict to the desired range
     plt.xlabel("Date")
     plt.ylabel("Price")
     plt.legend()
@@ -144,7 +159,7 @@ if __name__ == "__main__":
     from data.data_loader import load_data, preprocess_data
 
     # Load sample data
-    # ticker = "META"
+    ticker = "META"
     # ticker = "TSLA"
     # ticker = "F"
     # ticker = "SHOP"
@@ -154,7 +169,7 @@ if __name__ == "__main__":
     # ticker = "SPMO"
     # ticker = "spy"
     # ticker = "U"
-    ticker = "JPM"
+    # ticker = "JPM"
     # ticker = "AMD"
     # ticker = "nvda"
     # ticker = "AXP"
@@ -165,8 +180,9 @@ if __name__ == "__main__":
 
     # Load and preprocess data
     data_interval = "1d"
+    # data_interval = "5d"
 
-    start_date = "2020-01-01"
+    start_date = "2021-01-01"
     # start_date = "2000-01-01"
     # Today date
     # end_date = "2021-01-01"
@@ -176,27 +192,35 @@ if __name__ == "__main__":
     data.index = pd.to_datetime(data["Date"])
 
     # Strategy
-    params = {'short_window': 5, 'long_window': 64*2, 'alfa_short': 0, 'alfa_long': 0, 'volume_power_short': 100, 'volume_power_long': 100}
+    # params = {'short_window': 5, 'long_window': 64*2, 'alfa_short': 0, 'alfa_long': 0, 'volume_power_short': 100, 'volume_power_long': 100}
     # params = {'short_window': 5, 'long_window': 64, 'alfa_short': 100, 'alfa_long': 100, 'volume_power_short': 100, 'volume_power_long': 100}
     # params = {'short_window': 5, 'long_window': 64*2, 'alfa_short': 100, 'alfa_long': 100, 'volume_power_short': 100, 'volume_power_long': 100}
     # params = {'short_window': 10, 'long_window': 64*2, 'alfa_short': 0, 'alfa_long': 0, 'volume_power_short': 150, 'volume_power_long': 100} # SPY short above price
-    # params = {'short_window': 3, 'long_window': 52, 'alfa_short': 0, 'alfa_long': 0, 'volume_power_short': 184, 'volume_power_long': 120} # JPM short above price
 
-    # params = {'short_window': 61, 'long_window': 44, 'alfa_short': 10, 'alfa_long': 0, 'volume_power_short': 158, 'volume_power_long': 102, 'long_diff': 128, 'short_diff': 116} # JPM
-    # params = {'short_window': 244, 'long_window': 202, 'alfa_short': 50, 'alfa_long': 0, 'volume_power_short': 150, 'volume_power_long': 90, 'long_diff': 96, 'short_diff': 116}
-    # params = {'short_window': 279, 'long_window': 244, 'alfa_short': 10, 'alfa_long': 0, 'volume_power_short': 190, 'volume_power_long': 140, 'long_diff': 248, 'short_diff': 128}
+    params = {'short_window': 10, 'long_window': 20, 'alfa_short': 40, 'alfa_long': 0, 'volume_power_short': 100, 'volume_power_long': 100, 'long_diff': 8, 'short_diff': 80}# 5D spy
 
-    params = {'short_window': 101, 'long_window': 240, 'alfa_short': 40, 'alfa_long': 40, 'volume_power_short': 110, 'volume_power_long': 60, 'long_diff': 0, 'short_diff': 12} # 5D spy
-    params = {'short_window': 101, 'long_window': 168, 'alfa_short': 40, 'alfa_long': 0, 'volume_power_short': 110, 'volume_power_long': 50, 'long_diff': 8, 'short_diff': 80}# 5D spy
+    # TEST
+    params = {'short_window': 40, 'long_window': 192, 'volume_power_short': 70, 'volume_power_long': 150, 'long_diff': 56}
+    params = {'short_window': 63, 'long_window': 63*2, 'volume_power_short': 100, 'volume_power_long': 100, 'long_diff': 5, 'reset_window': 5, 'confirm_days': 1} # 5D spy
+    # params = {'short_window': 5, 'long_window': 160, 'volume_power_short': 130, 'volume_power_long': 110, 'long_diff': 48, 'reset_window': 10, 'confirm_days': 5} # 5D spy
+    # params = {'short_window': 12, 'long_window': 256, 'volume_power_short': 140, 'volume_power_long': 140, 'long_diff': 48, 'reset_window': 8, 'confirm_days': 4} # 5D spy
 
-    params = {'short_window': 74, 'long_window': 248, 'alfa_short': 100, 'alfa_long': 100, 'volume_power_short': 190, 'volume_power_long': 150, 'long_diff': 0, 'short_diff': 124}
-    # params = {'short_window': 27, 'long_window': 59, 'alfa_short': 47, 'alfa_long': 97, 'volume_power_short': 111, 'volume_power_long': 118} # TSLA
-    # params = {'short_window': 19, 'long_window': 5, 'alfa_short': 52, 'alfa_long': 40, 'volume_power_short': 124, 'volume_power_long': 101} # F / TSLA
-    # params = {'short_window': 22, 'long_window': 59, 'alfa_short': 14, 'alfa_long': 49, 'volume_power_short': 101, 'volume_power_long': 112} # FCX
+
+
+
+    # LIKE
+    # params = {'short_window': 12, 'long_window': 160, 'volume_power_short': 110, 'volume_power_long': 130, 'long_diff': 56, 'reset_window': 16, 'confirm_days': 1} # 1D spy
+    # params = {'short_window': 54, 'long_window': 128, 'volume_power_short': 150, 'volume_power_long': 150, 'long_diff': 48, 'reset_window': 2, 'confirm_days': 1} # 1D spy
+    # params = {'short_window': 61, 'long_window': 256, 'volume_power_short': 130, 'volume_power_long': 150, 'long_diff': 32, 'reset_window': 8, 'confirm_days': 2} # 1D spy
+    # params = {'short_window': 26, 'long_window': 96, 'volume_power_short': 130, 'volume_power_long': 150, 'long_diff': 56, 'reset_window': 8, 'confirm_days': 2} # 5D spy
+    # params = {'short_window': 5, 'long_window': 128, 'volume_power_short': 130, 'volume_power_long': 150, 'long_diff': 48, 'reset_window': 12, 'confirm_days': 2} # 5D spy
+    # params = {'short_window': 5, 'long_window': 160, 'volume_power_short': 130, 'volume_power_long': 110, 'long_diff': 48, 'reset_window': 10, 'confirm_days': 5}  # 5D spy
+    # params = {'short_window': 63, 'long_window': 63 * 2, 'volume_power_short': 100, 'volume_power_long': 100, 'long_diff': 5, 'reset_window': 5, 'confirm_days': 1}  # 5D spy META
+
     params['next_day_execution'] = True
-    params['sides'] = "long"
+    params['sides'] = "both"
 
-    strategy = emvwap_strategy(**params)
+    strategy = emvwap_strategy_with_reset(**params)
 
 
     # Initialize backtester
