@@ -29,6 +29,7 @@ ticker = tickers_by_sector.ticker_financials
 # ticker = "JPM"
 # ticker = "C"
 # ticker = "F"
+ticker = "AAPL"
 # ticker = ["AAPL", "MSFT", "GOOGL", "AMZN"]
 # ticker = ["AAPL"]
 # ticker = ["cost"]
@@ -47,16 +48,19 @@ strategy_selected = emvwap_strategy_with_reset
 
 # Number of trials
 n_trials = 2000
-sides = "both"
+sides = "short"
 
 # Define initial trial parameters
 initial_params = [
-{'short_window': 101, 'long_window': 168, 'alfa_short': 40, 'alfa_long': 0, 'volume_power_short': 110, 'volume_power_long': 50, 'long_diff': 8, 'short_diff': 80},# 5D
-{'short_window': 202, 'long_window': 256, 'alfa_short': 90, 'alfa_long': 30, 'volume_power_short': 180, 'volume_power_long': 90, 'long_diff': 16}, # DONCHIAN
-    {"short_window": 63, "long_window": 63*4, "alfa_short": 0, "alfa_long": 0, "volume_power_short": 100, "volume_power_long": 100},
-    {'short_window': 5, 'long_window': 470, 'alfa_short': 1, 'alfa_long': 3, 'volume_power_short': 160, 'volume_power_long': 47},
-    {'short_window': 5, 'long_window': 25, 'alfa_short': 108, 'alfa_long': 137, 'volume_power_short': 88, 'volume_power_long': 89},
-    {'short_window': 23, 'long_window': 467, 'alfa_short': -20, 'alfa_long': 141, 'volume_power_short': 133, 'volume_power_long': 223},
+# {'short_window': 101, 'long_window': 168, 'alfa_short': 40, 'alfa_long': 0, 'volume_power_short': 110, 'volume_power_long': 50, 'long_diff': 8, 'short_diff': 80},# 5D
+# {'short_window': 202, 'long_window': 256, 'alfa_short': 90, 'alfa_long': 30, 'volume_power_short': 180, 'volume_power_long': 90, 'long_diff': 16}, # DONCHIAN
+#     {"short_window": 63, "long_window": 63*4, "alfa_short": 0, "alfa_long": 0, "volume_power_short": 100, "volume_power_long": 100},
+#     {'short_window': 5, 'long_window': 470, 'alfa_short': 1, 'alfa_long': 3, 'volume_power_short': 160, 'volume_power_long': 47},
+#     {'short_window': 5, 'long_window': 25, 'alfa_short': 108, 'alfa_long': 137, 'volume_power_short': 88, 'volume_power_long': 89},
+#     {'short_window': 23, 'long_window': 467, 'alfa_short': -20, 'alfa_long': 141, 'volume_power_short': 133, 'volume_power_long': 223},
+
+{'short_window': 63, 'long_window': 63*2, 'volume_power_short': 100, 'volume_power_long': 100, 'long_diff': 5, 'reset_window': 5, 'confirm_days': 1},
+{'short_window': 61, 'long_window': 128, 'volume_power_short': 140, 'volume_power_long': 100, 'long_diff': 64, 'reset_window': 18, 'confirm_days': 2}, # APPL BOTH value: -0.56
 ]
 
 def loss_flow(strategy, data_pd):
@@ -108,7 +112,7 @@ def objective(trial):
     volume_power_long = trial.suggest_int("volume_power_long", 80, 160, step=20)  # Range for volume_power_long
     long_diff = trial.suggest_int("long_diff", 0, 64, step=8)
     reset_window = trial.suggest_int("reset_window", 2, 20, step=2)
-    confirm_days = trial.suggest_int("confirm_days", 2, 6, step=2)
+    confirm_days = trial.suggest_int("confirm_days", 2, 4, step=1)
 
     # Create the strategy with sampled hyperparameters
     strategy = strategy_selected(

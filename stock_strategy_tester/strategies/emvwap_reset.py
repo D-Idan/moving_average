@@ -75,8 +75,8 @@ def emvwap_strategy_with_reset(
         # Initialize position signals
         position = pd.Series(np.nan, index=data_s.index)
 
-
-        long_condition = (data_s["Close"] > EMVWAP_Short) & (EMVWAP_Long.diff(long_diff) > 0)
+        long_line_condition = (EMVWAP_Long.diff(long_diff) > 0) & (data_s["Close"] > EMVWAP_Long)
+        long_condition = (data_s["Close"] > EMVWAP_Short) & long_line_condition
         # short_condition = (data_s["Close"] < EMVWAP_Short) & (EMVWAP_Long.diff(long_diff) < 0)
         # long_condition = ((EMVWAP_Short.diff(long_diff) > 0) | (data_s["Close"] > EMVWAP_Short)) & (EMVWAP_Long.diff(long_diff) > 0)
         # short_condition = (EMVWAP_Short.diff(long_diff) < 0) & (EMVWAP_Long.diff(long_diff) < 0)
@@ -84,12 +84,13 @@ def emvwap_strategy_with_reset(
         # short_condition = (data_s["Close"] > EMVWAP_Short)
         # long_condition = (data_s["Close"] < EMVWAP_Short) & (EMVWAP_Long.diff(long_diff) > 0)
         # short_condition = (data_s["Close"] > EMVWAP_Short) & (EMVWAP_Long.diff(long_diff) < 0)
-        short_condition = (EMVWAP_Long.diff(long_diff) <= 0)
+        short_condition = (EMVWAP_Long.diff(long_diff) <= 0) & (data_s["Close"] < EMVWAP_Long)
+
 
         # Two-day confirmation for long_condition
         confirm_days = confirm_days
         confirmed_long_confirmation = long_condition.rolling(window=confirm_days).sum() == confirm_days
-        confirmed_long_confirmation2 = ((data_s["Close"] < EMVWAP_Short) & (EMVWAP_Long.diff(long_diff) > 0)).rolling(window=confirm_days).sum() == confirm_days
+        confirmed_long_confirmation2 = ((data_s["Close"] < EMVWAP_Short) & long_line_condition).rolling(window=confirm_days).sum() == confirm_days
         confirmed_long_condition = (confirmed_long_confirmation | confirmed_long_confirmation2)
         # confirmed_long_condition = long_condition
 

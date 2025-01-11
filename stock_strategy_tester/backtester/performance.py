@@ -40,8 +40,8 @@ def calculate_total_profit_per_trade(data, normalize=False):
     ################################ 1 ################################
     # Calculate percentage profit for each trade
     trade_results["Profit_Percentage"] = trade_results.apply(
-        lambda row: ((row["Close"] - row["Open"]) / row["Open"] * 100)
-        if row["Position"] == 1 else ((row["Open"] - row["Close"]) / row["Open"] * 100),
+        lambda row: ((row["Close"] - row["Open"]) / row["Open"] * 100) * row["Position"],
+        # if row["Position"] == 1 else ((row["Open"] - row["Close"]) / row["Open"] * 100),
         axis=1
     )
 

@@ -136,8 +136,12 @@ def plot_strategy_results(data, lines, results):
             exit_date = trade_data.index[-1]  # Exit point (last date of trade)
 
             # Draw vertical lines for entry and exit points
-            print(f"Entry: {entry_date}, Exit: {exit_date}, Last Date: {data.index[-1]}")
-            plt.axvline(x=entry_date, color='green', linestyle='-', alpha=0.5, label="Entry Point" if idx == 0 else "")
+            print(f"Entry: {entry_date}, Exit: {exit_date}, Last Date: {data.index[-1]}") # DEBUG
+            # Only draw the exit line if the trade is closed (i.e., not the last date in the dataset)
+            if exit_date != data.index[-1]: # The last raw is a dummy raw
+                plt.axvline(x=entry_date, color='green', linestyle='-', alpha=0.5, label="Entry Point" if idx == 0 else "")
+            if exit_date == data.index[-2]:
+                print("!!! EXIT THE TRADE !!!")
             plt.axvline(x=exit_date, color='red', linestyle='-', alpha=0.5, label="Exit Point" if idx == 0 else "")
 
     # Add labels, legend, and title
@@ -159,14 +163,14 @@ if __name__ == "__main__":
     from data.data_loader import load_data, preprocess_data
 
     # Load sample data
-    ticker = "META"
+    # ticker = "META"
     # ticker = "TSLA"
     # ticker = "F"
     # ticker = "SHOP"
     # ticker = "SQ"
     # ticker = "LVS"
     # ticker = "CMG"
-    # ticker = "SPMO"
+    ticker = "SPMO"
     # ticker = "spy"
     # ticker = "U"
     # ticker = "JPM"
@@ -197,10 +201,10 @@ if __name__ == "__main__":
     # params = {'short_window': 5, 'long_window': 64*2, 'alfa_short': 100, 'alfa_long': 100, 'volume_power_short': 100, 'volume_power_long': 100}
     # params = {'short_window': 10, 'long_window': 64*2, 'alfa_short': 0, 'alfa_long': 0, 'volume_power_short': 150, 'volume_power_long': 100} # SPY short above price
 
-    params = {'short_window': 10, 'long_window': 20, 'alfa_short': 40, 'alfa_long': 0, 'volume_power_short': 100, 'volume_power_long': 100, 'long_diff': 8, 'short_diff': 80}# 5D spy
+    params = {'short_window': 61, 'long_window': 128, 'volume_power_short': 140, 'volume_power_long': 100, 'long_diff': 64, 'reset_window': 18, 'confirm_days': 2}# 5D spy
 
     # TEST
-    params = {'short_window': 40, 'long_window': 192, 'volume_power_short': 70, 'volume_power_long': 150, 'long_diff': 56}
+    # params = {'short_window': 40, 'long_window': 192, 'volume_power_short': 70, 'volume_power_long': 150, 'long_diff': 56}
     params = {'short_window': 63, 'long_window': 63*2, 'volume_power_short': 100, 'volume_power_long': 100, 'long_diff': 5, 'reset_window': 5, 'confirm_days': 1} # 5D spy
     # params = {'short_window': 5, 'long_window': 160, 'volume_power_short': 130, 'volume_power_long': 110, 'long_diff': 48, 'reset_window': 10, 'confirm_days': 5} # 5D spy
     # params = {'short_window': 12, 'long_window': 256, 'volume_power_short': 140, 'volume_power_long': 140, 'long_diff': 48, 'reset_window': 8, 'confirm_days': 4} # 5D spy
@@ -214,10 +218,10 @@ if __name__ == "__main__":
     # params = {'short_window': 61, 'long_window': 256, 'volume_power_short': 130, 'volume_power_long': 150, 'long_diff': 32, 'reset_window': 8, 'confirm_days': 2} # 1D spy
     # params = {'short_window': 26, 'long_window': 96, 'volume_power_short': 130, 'volume_power_long': 150, 'long_diff': 56, 'reset_window': 8, 'confirm_days': 2} # 5D spy
     # params = {'short_window': 5, 'long_window': 128, 'volume_power_short': 130, 'volume_power_long': 150, 'long_diff': 48, 'reset_window': 12, 'confirm_days': 2} # 5D spy
-    # params = {'short_window': 5, 'long_window': 160, 'volume_power_short': 130, 'volume_power_long': 110, 'long_diff': 48, 'reset_window': 10, 'confirm_days': 5}  # 5D spy
-    # params = {'short_window': 63, 'long_window': 63 * 2, 'volume_power_short': 100, 'volume_power_long': 100, 'long_diff': 5, 'reset_window': 5, 'confirm_days': 1}  # 5D spy META
+    # params = {'short_window': 63, 'long_window': 63 * 2, 'volume_power_short': 100, 'volume_power_long': 100,
+    # 'long_diff': 5, 'reset_window': 5, 'confirm_days': 1}  # 1D not many changes fit many stocks
 
-    params['next_day_execution'] = True
+    params['next_day_execution'] = False
     params['sides'] = "both"
 
     strategy = emvwap_strategy_with_reset(**params)
