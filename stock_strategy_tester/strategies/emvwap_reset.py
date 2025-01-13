@@ -77,6 +77,7 @@ def emvwap_strategy_with_reset(
 
         long_line_condition = (EMVWAP_Long.diff(long_diff) > 0) & (data_s["Close"] > EMVWAP_Long)
         long_condition = (data_s["Close"] > EMVWAP_Short) & long_line_condition
+        long_condition = long_condition & (EMVWAP_Short.diff() > 0.001)
         # short_condition = (data_s["Close"] < EMVWAP_Short) & (EMVWAP_Long.diff(long_diff) < 0)
         # long_condition = ((EMVWAP_Short.diff(long_diff) > 0) | (data_s["Close"] > EMVWAP_Short)) & (EMVWAP_Long.diff(long_diff) > 0)
         # short_condition = (EMVWAP_Short.diff(long_diff) < 0) & (EMVWAP_Long.diff(long_diff) < 0)
@@ -84,7 +85,7 @@ def emvwap_strategy_with_reset(
         # short_condition = (data_s["Close"] > EMVWAP_Short)
         # long_condition = (data_s["Close"] < EMVWAP_Short) & (EMVWAP_Long.diff(long_diff) > 0)
         # short_condition = (data_s["Close"] > EMVWAP_Short) & (EMVWAP_Long.diff(long_diff) < 0)
-        short_condition = (EMVWAP_Long.diff(long_diff) <= data_s["Close"]*0.20) & (data_s["Close"] < EMVWAP_Long)
+        short_condition = (EMVWAP_Long.diff(long_diff) < 0) & (data_s["Close"] < EMVWAP_Long)
 
 
         # Two-day confirmation for long_condition

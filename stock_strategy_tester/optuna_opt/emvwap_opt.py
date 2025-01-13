@@ -46,7 +46,7 @@ strategy_selected = donchian_avarage_strategy
 
 # Number of trials
 n_trials = 2000
-sides = "long"
+sides = "both"
 
 # Define initial trial parameters
 initial_params = [

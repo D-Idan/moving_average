@@ -167,13 +167,13 @@ if __name__ == "__main__":
     # ticker = "TSLA"
     # ticker = "F"
     # ticker = "SHOP"
-    # ticker = "SQ"
+    # ticker = "SQ" # XYZ
     # ticker = "LVS"
     # ticker = "CMG"
-    ticker = "SPMO"
+    # ticker = "SPMO"
     # ticker = "spy"
     # ticker = "U"
-    # ticker = "JPM"
+    ticker = "JPM"
     # ticker = "AMD"
     # ticker = "nvda"
     # ticker = "AXP"
@@ -183,11 +183,11 @@ if __name__ == "__main__":
     # ticker = "USDGBP=X"
 
     # Load and preprocess data
-    data_interval = "1d"
     # data_interval = "5d"
+    data_interval = "1d"
 
-    start_date = "2021-01-01"
-    # start_date = "2000-01-01"
+    # start_date = "2021-01-01"
+    start_date = "2000-01-01"
     # Today date
     # end_date = "2021-01-01"
     end_date = datetime.now().strftime("%Y-%m-%d")
@@ -207,7 +207,7 @@ if __name__ == "__main__":
     # params = {'short_window': 40, 'long_window': 192, 'volume_power_short': 70, 'volume_power_long': 150, 'long_diff': 56}
     params = {'short_window': 63, 'long_window': 63*2, 'volume_power_short': 100, 'volume_power_long': 100, 'long_diff': 5, 'reset_window': 5, 'confirm_days': 1} # 5D spy
     # params = {'short_window': 5, 'long_window': 160, 'volume_power_short': 130, 'volume_power_long': 110, 'long_diff': 48, 'reset_window': 10, 'confirm_days': 5} # 5D spy
-    # params = {'short_window': 12, 'long_window': 256, 'volume_power_short': 140, 'volume_power_long': 140, 'long_diff': 48, 'reset_window': 8, 'confirm_days': 4} # 5D spy
+    # params = {'short_window': 33, 'long_window': 128, 'volume_power_short': 160, 'volume_power_long': 140, 'long_diff': 0, 'reset_window': 8, 'confirm_days': 4}
 
 
 
@@ -221,8 +221,8 @@ if __name__ == "__main__":
     # params = {'short_window': 63, 'long_window': 63 * 2, 'volume_power_short': 100, 'volume_power_long': 100,
     # 'long_diff': 5, 'reset_window': 5, 'confirm_days': 1}  # 1D not many changes fit many stocks
 
-    params['next_day_execution'] = False
-    params['sides'] = "both"
+    params['next_day_execution'] = True
+    params['sides'] = "long"
 
     strategy = emvwap_strategy_with_reset(**params)
 
