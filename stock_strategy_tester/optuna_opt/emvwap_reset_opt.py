@@ -16,13 +16,14 @@ from strategies.emvwap_reset import emvwap_strategy_with_reset
 # Load sample data
 # ticker = ["AAPL", "AMZN", "GOOGL", "MSFT", "TSLA", "AVGO", "NVDA", "META"]
 # ticker = ["AAPL", "JPM", "SQ", "TSLA", "INTC", "F", "WBD"] # 7 stocks
-ticker = tickers_by_sector.ticker_financials
-ticker = tickers_by_sector.ticker_real_estate + ticker
+# ticker = tickers_by_sector.ticker_financials
+# ticker = tickers_by_sector.ticker_real_estate + ticker
 # ticker = tickers_by_sector.ticker_materials + ticker
 # ticker = tickers_by_sector.ticker_industrials + ticker
 # ticker = tickers_by_sector.ticker_consumer_staples + ticker
 # ticker = tickers_by_sector.ticker_consumer_discretionary + ticker
 # ticker = "META"
+ticker = "MSFT"
 # ticker = "TSLA"
 # ticker = "SPY"
 # ticker = "SPMO"
@@ -47,8 +48,8 @@ end_date = "2020-01-01"
 strategy_selected = emvwap_strategy_with_reset
 
 # Number of trials
-n_trials = 200000
-sides = "both"
+n_trials = 2000
+sides = "long"
 
 # Define initial trial parameters
 initial_params = [

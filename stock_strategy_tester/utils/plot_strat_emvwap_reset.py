@@ -171,9 +171,9 @@ if __name__ == "__main__":
     # ticker = "LVS"
     # ticker = "CMG"
     # ticker = "SPMO"
-    # ticker = "spy"
+    ticker = "spy"
     # ticker = "U"
-    ticker = "JPM"
+    # ticker = "JPM"
     # ticker = "AMD"
     # ticker = "nvda"
     # ticker = "AXP"
@@ -186,8 +186,8 @@ if __name__ == "__main__":
     # data_interval = "5d"
     data_interval = "1d"
 
-    # start_date = "2021-01-01"
-    start_date = "2000-01-01"
+    start_date = "2021-01-01"
+    # start_date = "2000-01-01"
     # Today date
     # end_date = "2021-01-01"
     end_date = datetime.now().strftime("%Y-%m-%d")
