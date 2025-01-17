@@ -24,13 +24,15 @@ def std_momentum_strategy(
         data_s['daily_pct_change'] = abs(data_s['Close'] - data_s['Open']) / data_s['Open']
 
         # Calculate rolling standard deviation of percentage change
-        data_s['rolling_std'] = data_s['daily_pct_change'].rolling(window=std_window).std() * 4
+        data_s['rolling_std'] = data_s['daily_pct_change'].rolling(window=std_window).std()
+        data_s['rolling_ema'] = data_s['Open'].ewm(span=std_window).mean()
 
         # Identify entry conditions
         entry_condition = (data_s['daily_pct_change'] > data_s['rolling_std']) & (data_s['daily_pct_change'] > 0)
+        entry_condition = (data_s['daily_pct_change'] > data_s['rolling_std']) & (data_s['Close'] > data_s['rolling_ema'])
 
         # Calculate take profit and stop loss levels for all potential entries
-        data_s['entry_price'] = np.where(entry_condition, data_s['Close'].shift(-1), np.nan)
+        data_s['entry_price'] = np.where(entry_condition, data_s['Open'], np.nan)
         data_s['take_profit'] = np.where(
             entry_condition,
             data_s['Close'] * (1 + (data_s['daily_pct_change'] * profit_multiple)),
@@ -39,7 +41,7 @@ def std_momentum_strategy(
         data_s['stop_loss'] = np.where(entry_condition, data_s['Low'], np.nan)
 
         # Initialize signals
-        long_signal = pd.Series(0, index=data_s.index)
+        long_signal = pd.Series(np.nan, index=data_s.index)
 
         # Mark entry points
         long_signal.loc[entry_condition] = 1
@@ -53,39 +55,19 @@ def std_momentum_strategy(
         data_s['min_low'] = data_s.groupby('active_signal')['Low'].cummin()
 
         # Create exit conditions
-        take_profit_hit = (data_s['High'] >= data_s['take_profit'].ffill()) & (data_s['take_profit'].ffill().notna())
-        stop_loss_hit = (data_s['Close'] <= data_s['stop_loss'].ffill()) & (data_s['stop_loss'].ffill().notna())
+        take_profit_hit = (data_s['High'] >= data_s['take_profit'].ffill())
+        stop_loss_hit = (data_s['Close'] <= data_s['stop_loss'].ffill())
         exit_condition = take_profit_hit | stop_loss_hit
 
-        import matplotlib.pyplot as plt
-
-        data_s[['take_profit',"Close", "stop_loss"]].ffill().plot()
-        plt.scatter(data_s.index, entry_condition * data_s["Close"] , color='red', label='Take Profit')
-        plt.scatter(data_s.index, exit_condition * data_s["Close"] , color='black', label='exit')
-        plt.show()
-
-
-        # Plot before applying exit_condition
-        plt.figure(figsize=(12, 6))
-        plt.plot(long_signal, label='Long Signal (Before Exit Condition)', color='blue', alpha=0.7)
-        plt.plot(exit_condition.index, exit_condition.astype(int), label='Exit Condition', color='red', linestyle='--',
-                 alpha=0.7)
-        plt.title("Strategy Debugging: Before Applying Exit Condition")
-        plt.legend()
-        plt.show()
-
         # Mark exits in the signal
         long_signal.loc[exit_condition] = 0
 
-        # Plot after applying exit_condition
-        plt.figure(figsize=(12, 6))
-        plt.plot(long_signal, label='Long Signal (After Exit Condition)', color='green', alpha=0.7)
-        plt.title("Strategy Debugging: After Applying Exit Condition")
-        plt.legend()
-        plt.show()
-
-        # Mark exits in the signal
-        long_signal.loc[exit_condition] = 0
+        # import matplotlib.pyplot as plt
+        # data_s[['take_profit',"Close", "stop_loss"]].ffill().plot()
+        # plt.scatter(data_s.index, entry_condition * data_s["Close"] , color='red', label='Take Profit')
+        # plt.scatter(data_s.index, exit_condition * data_s["Close"] , color='black', label='exit')
+        # plt.scatter(data_s.index, long_signal.ffill() * data_s["Close"] , color='green', label='long signal', marker='v')
+        # plt.show()
 
         # Forward fill active signals for persistence until exit
         signal_groups = (long_signal != 0).cumsum()
@@ -99,11 +81,14 @@ def std_momentum_strategy(
         short_signal = pd.Series(0, index=data_s.index)
 
         # Drop temporary columns
+        take_profit_line = data_s['take_profit'].ffill()
+        stop_loss_line = data_s["stop_loss"].ffill()
         data_s.drop(['daily_pct_change', 'rolling_std', 'entry_price', 'take_profit', 'stop_loss',
                      'max_high', 'min_low', 'active_signal'], axis=1, inplace=True)
 
         if return_line:
-            return long_signal, short_signal, data_s
+            lines = {'long': take_profit_line, 'short': stop_loss_line}
+            return long_signal, short_signal, lines
 
         return long_signal, short_signal
 
@@ -125,7 +110,7 @@ if __name__ == "__main__":
     backtester = Backtester(data)
 
     # Run the backtest
-    results = backtester.run(std_momentum_strategy(std_window=20, profit_multiple=2.0))
+    results = backtester.run(std_momentum_strategy(std_window=20, profit_multiple=1.0))
 
     # Generate backtest report
     generate_report_backtest(results['data'])
