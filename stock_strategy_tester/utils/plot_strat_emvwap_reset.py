@@ -165,7 +165,7 @@ if __name__ == "__main__":
     # Load sample data
     # ticker = "META"
     # ticker = "TSLA"
-    ticker = "MSFT"
+    # ticker = "MSFT"
     # ticker = "F"
     # ticker = "SHOP"
     # ticker = "SQ" # XYZ
@@ -174,7 +174,7 @@ if __name__ == "__main__":
     # ticker = "SPMO"
     # ticker = "spy"
     # ticker = "U"
-    # ticker = "JPM"
+    ticker = "JPM"
     # ticker = "AMD"
     # ticker = "nvda"
     # ticker = "AXP"
@@ -202,13 +202,14 @@ if __name__ == "__main__":
     # params = {'short_window': 5, 'long_window': 64*2, 'alfa_short': 100, 'alfa_long': 100, 'volume_power_short': 100, 'volume_power_long': 100}
     # params = {'short_window': 10, 'long_window': 64*2, 'alfa_short': 0, 'alfa_long': 0, 'volume_power_short': 150, 'volume_power_long': 100} # SPY short above price
 
-    params = {'short_window': 61, 'long_window': 128, 'volume_power_short': 140, 'volume_power_long': 100, 'long_diff': 64, 'reset_window': 18, 'confirm_days': 2}# 5D spy
+    # params = {'short_window': 61, 'long_window': 128, 'volume_power_short': 140, 'volume_power_long': 100, 'long_diff': 64, 'reset_window': 18, 'confirm_days': 2}# 5D spy
 
     # TEST
     # params = {'short_window': 40, 'long_window': 192, 'volume_power_short': 70, 'volume_power_long': 150, 'long_diff': 56}
-    params =     {'short_window': 19, 'long_window': 256, 'volume_power_short': 180, 'volume_power_long': 80, 'long_diff': 56, 'reset_window': 2, 'confirm_days': 3}# 5D spy
+    # params =     {'short_window': 19, 'long_window': 256, 'volume_power_short': 180, 'volume_power_long': 80, 'long_diff': 56, 'reset_window': 2, 'confirm_days': 3}# 5D spy
     # params = {'short_window': 5, 'long_window': 160, 'volume_power_short': 130, 'volume_power_long': 110, 'long_diff': 48, 'reset_window': 10, 'confirm_days': 5} # 5D spy
-    # params = {'short_window': 33, 'long_window': 128, 'volume_power_short': 160, 'volume_power_long': 140, 'long_diff': 0, 'reset_window': 8, 'confirm_days': 4}
+    params =  {'short_window': 33, 'long_window': 192, 'volume_power_short': 80, 'volume_power_long': 140, 'long_diff': 32, 'reset_window': 4, 'confirm_days': 2}
+
 
 
     # LIKE
@@ -217,8 +218,7 @@ if __name__ == "__main__":
     # params = {'short_window': 61, 'long_window': 256, 'volume_power_short': 130, 'volume_power_long': 150, 'long_diff': 32, 'reset_window': 8, 'confirm_days': 2} # 1D spy
     # params = {'short_window': 26, 'long_window': 96, 'volume_power_short': 130, 'volume_power_long': 150, 'long_diff': 56, 'reset_window': 8, 'confirm_days': 2} # 5D spy
     # params = {'short_window': 5, 'long_window': 128, 'volume_power_short': 130, 'volume_power_long': 150, 'long_diff': 48, 'reset_window': 12, 'confirm_days': 2} # 5D spy
-    # params = {'short_window': 63, 'long_window': 63 * 2, 'volume_power_short': 100, 'volume_power_long': 100,
-    # 'long_diff': 5, 'reset_window': 5, 'confirm_days': 1}  # 1D not many changes fit many stocks
+    # params = {'short_window': 63, 'long_window': 63 * 2, 'volume_power_short': 100, 'volume_power_long': 100, 'long_diff': 5, 'reset_window': 5, 'confirm_days': 1}  # 1D not many changes fit many stocks
 
     params['next_day_execution'] = True
     params['sides'] = "long"

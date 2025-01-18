@@ -17,12 +17,13 @@ def emvwap_strategy_with_reset(
     confirm_days=2,
     long_diff=1,
     short_diff=1,
-    reset_window=10  # New parameter: Number of days to look back for price drops
+    reset_window=10,  # New parameter: Number of days to look back for price drops
+    next_day_value=None,
 ):
     def strategy(data_s, alfa_short=alfa_short, alfa_long=alfa_long, short_window=short_window, long_window=long_window,
                  volume_power_short=volume_power_short, volume_power_long=volume_power_long, return_line=return_line, sides=sides,
                  next_day_execution=next_day_execution, confirm_days=confirm_days, long_diff=long_diff, short_diff=short_diff,
-                 reset_window=reset_window
+                 reset_window=reset_window, next_day_value=next_day_value
 
                  ):
         """
@@ -32,8 +33,18 @@ def emvwap_strategy_with_reset(
         if not {"Close", "Volume", "High", "Low"}.issubset(data_s.columns):
             raise ValueError("Input data must contain 'Close', 'Volume', 'High', and 'Low' columns.")
 
+        if next_day_value:
+            # Add an additional row to avoid plotting the artificial line
+            last_date = data_s.index[-1]
+            next_date = last_date + pd.Timedelta(days=1)  # Increment the last date by one day
+            additional_row = data_s.iloc[-1].copy()  # Duplicate the last row
+            additional_row["Open"] = next_day_value  # Set the new index
+            additional_row.name = next_date  # Set the new index
+            data_s = pd.concat([data_s, pd.DataFrame([additional_row])])  # Append the new row
+
+
         # Helper: Calculate EM-VWAP
-        def calculate_em_vwap(span, volume_power=100, day_price="Close", start_index=0):
+        def calculate_em_vwap(span, volume_power=100, day_price="Open", start_index=0):
             volume_power = volume_power / 100
             data_calc = data_s.iloc[start_index:]
             price_volume = data_calc[day_price] * (data_calc["Volume"] ** volume_power)
@@ -42,14 +53,14 @@ def emvwap_strategy_with_reset(
             return ewma_price_volume / (ewma_volume ** volume_power)
 
         # Initialize EMVWAP values
-        EMVWAP_Short = calculate_em_vwap(short_window, volume_power=volume_power_short, day_price="High", start_index=0)
-        EMVWAP_Long = calculate_em_vwap(long_window, volume_power=volume_power_long, day_price="Close", start_index=0)
+        EMVWAP_Short = calculate_em_vwap(short_window, volume_power=volume_power_short, day_price="Open", start_index=0)
+        EMVWAP_Long = calculate_em_vwap(long_window, volume_power=volume_power_long, day_price="Open", start_index=0)
 
         # Tracking minimum prices
         rolling_min_price = data_s["Open"].rolling(window=reset_window).min()
 
         # Identify rows where the reset condition occurs
-        reset_condition = data_s["Close"] < rolling_min_price
+        reset_condition = data_s["Open"] < rolling_min_price
 
         # Calculate EMVWAP values only at reset points
         reset_indices = np.where(reset_condition)[0]
@@ -60,7 +71,7 @@ def emvwap_strategy_with_reset(
                 emvwap_short_reset[idx:] = calculate_em_vwap(
                     short_window,
                     volume_power=volume_power_short,
-                    day_price="High",
+                    day_price="Open",
                     start_index=idx
                 )
             EMVWAP_Short = pd.Series(emvwap_short_reset, index=data_s.index)
@@ -68,15 +79,15 @@ def emvwap_strategy_with_reset(
             EMVWAP_Short = calculate_em_vwap(
                 short_window,
                 volume_power=volume_power_short,
-                day_price="High",
+                day_price="Open",
                 start_index=0
             )
 
         # Initialize position signals
         position = pd.Series(np.nan, index=data_s.index)
 
-        long_line_condition = (EMVWAP_Long.diff(long_diff) > 0) & (data_s["Close"] > EMVWAP_Long)
-        long_condition = (data_s["Close"] > EMVWAP_Short) & long_line_condition
+        long_line_condition = (EMVWAP_Long.diff(long_diff) > 0) & (data_s["Open"] > EMVWAP_Long)
+        long_condition = (data_s["Open"] > EMVWAP_Short) & long_line_condition
         long_condition = long_condition & (EMVWAP_Short.diff() > 0.001)
         # short_condition = (data_s["Close"] < EMVWAP_Short) & (EMVWAP_Long.diff(long_diff) < 0)
         # long_condition = ((EMVWAP_Short.diff(long_diff) > 0) | (data_s["Close"] > EMVWAP_Short)) & (EMVWAP_Long.diff(long_diff) > 0)
@@ -85,13 +96,13 @@ def emvwap_strategy_with_reset(
         # short_condition = (data_s["Close"] > EMVWAP_Short)
         # long_condition = (data_s["Close"] < EMVWAP_Short) & (EMVWAP_Long.diff(long_diff) > 0)
         # short_condition = (data_s["Close"] > EMVWAP_Short) & (EMVWAP_Long.diff(long_diff) < 0)
-        short_condition = (EMVWAP_Long.diff(long_diff) < 0) & (data_s["Close"] < EMVWAP_Long)
+        short_condition = (EMVWAP_Long.diff(long_diff) < 0) & (data_s["Open"] < EMVWAP_Long)
 
 
         # Two-day confirmation for long_condition
         confirm_days = confirm_days
         confirmed_long_confirmation = long_condition.rolling(window=confirm_days).sum() == confirm_days
-        confirmed_long_confirmation2 = ((data_s["Close"] < EMVWAP_Short) & long_line_condition).rolling(window=confirm_days).sum() == confirm_days
+        confirmed_long_confirmation2 = ((data_s["Open"] < EMVWAP_Short) & long_line_condition).rolling(window=confirm_days).sum() == confirm_days
         confirmed_long_condition = (confirmed_long_confirmation | confirmed_long_confirmation2)
         # confirmed_long_condition = long_condition
 

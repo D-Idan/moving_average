@@ -23,11 +23,11 @@ from strategies.emvwap_reset import emvwap_strategy_with_reset
 # ticker = tickers_by_sector.ticker_consumer_staples + ticker
 # ticker = tickers_by_sector.ticker_consumer_discretionary + ticker
 # ticker = "META"
-ticker = "MSFT"
+# ticker = "MSFT"
 # ticker = "TSLA"
 # ticker = "SPY"
 # ticker = "SPMO"
-# ticker = "JPM"
+ticker = "JPM"
 # ticker = "C"
 # ticker = "F"
 # ticker = "AAPL"
@@ -62,6 +62,8 @@ initial_params = [
 
 {'short_window': 63, 'long_window': 63*2, 'volume_power_short': 100, 'volume_power_long': 100, 'long_diff': 5, 'reset_window': 5, 'confirm_days': 1},
 {'short_window': 61, 'long_window': 128, 'volume_power_short': 140, 'volume_power_long': 100, 'long_diff': 64, 'reset_window': 18, 'confirm_days': 2}, # APPL BOTH value: -0.56
+{'short_window': 19, 'long_window': 64, 'volume_power_short': 100, 'volume_power_long': 140, 'long_diff': 8, 'reset_window': 10, 'confirm_days': 2},
+{'short_window': 33, 'long_window': 192, 'volume_power_short': 180, 'volume_power_long': 160, 'long_diff': 24, 'reset_window': 2, 'confirm_days': 2},
 ]
 
 def loss_flow(strategy, data_pd):
@@ -125,6 +127,7 @@ def objective(trial):
         reset_window=reset_window,
         confirm_days=confirm_days,
         sides=sides,
+        next_day_execution=False,
     )
 
     # Calculate the loss
@@ -158,6 +161,8 @@ if __name__ == "__main__":
         reset_window=best_params["reset_window"],
         confirm_days=best_params["confirm_days"],
         sides=sides,
+        next_day_execution=False,
+
     )
 
     for i, data_i in enumerate(data):
