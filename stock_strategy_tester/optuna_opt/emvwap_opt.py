@@ -93,7 +93,7 @@ def load_data_for_testing(ticker, start_date, end_date):
         data_list.append(data_s)
     return data_list
 
-data = load_data_for_testing(ticker, start_date, end_date)
+
 
 
 
@@ -128,6 +128,9 @@ def objective(trial):
     return loss
 
 if __name__ == "__main__":
+
+    data = load_data_for_testing(ticker, start_date, end_date)
+
     # Create an Optuna study
     study = optuna.create_study(direction="minimize")
 
