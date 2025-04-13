@@ -176,11 +176,11 @@ if __name__ == "__main__":
     # Strategy
     params = {'short_window': 64*4, 'long_window': 10, 'alfa_short': 10, 'alfa_long': 0, 'volume_power_short': 100, 'volume_power_long': 100, 'long_diff': 10, 'stop_loss_days': 5}
 
-    # params = {'short_window': 360, 'long_window': 18, 'alfa_short': 10, 'alfa_long': 40, 'volume_power_long': 80, 'long_diff': 104, 'stop_loss_days': 3} # DONCHIAN both
+    params = {'short_window': 360, 'long_window': 18, 'alfa_short': 10, 'alfa_long': 40, 'volume_power_long': 80, 'long_diff': 104, 'stop_loss_days': 3} # DONCHIAN both
 
 
     # Monthly
-    params = {'short_window': 126, 'long_window': 54, 'alfa_short': 20, 'alfa_long': 90, 'volume_power_long': 120, 'long_diff': 24, 'stop_loss_days': 3} # DONCHIAN long
+    # params = {'short_window': 126, 'long_window': 54, 'alfa_short': 20, 'alfa_long': 90, 'volume_power_long': 120, 'long_diff': 24, 'stop_loss_days': 3} # DONCHIAN long
 
 
 

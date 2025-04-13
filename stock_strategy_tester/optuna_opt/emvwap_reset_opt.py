@@ -23,11 +23,11 @@ from strategies.emvwap_reset import emvwap_strategy_with_reset
 # ticker = tickers_by_sector.ticker_consumer_staples + ticker
 # ticker = tickers_by_sector.ticker_consumer_discretionary + ticker
 # ticker = "META"
-# ticker = "MSFT"
+ticker = "MSFT"
 # ticker = "TSLA"
 # ticker = "SPY"
 # ticker = "SPMO"
-ticker = "JPM"
+# ticker = "JPM"
 # ticker = "C"
 # ticker = "F"
 # ticker = "AAPL"
@@ -48,7 +48,7 @@ end_date = "2020-01-01"
 strategy_selected = emvwap_strategy_with_reset
 
 # Number of trials
-n_trials = 2000
+n_trials = 5000
 sides = "long"
 
 # Define initial trial parameters
@@ -111,8 +111,8 @@ def objective(trial):
     # Define hyperparameters to optimize
     short_window = trial.suggest_int("short_window", 5, 61, step=7)  # Range for short_window
     long_window = trial.suggest_int("long_window", 64, 64*4, step=32)  # Range for long_window
-    volume_power_short = trial.suggest_int("volume_power_short", 80, 180, step=20)  # Range for volume_power_short # DONCHIAN
-    volume_power_long = trial.suggest_int("volume_power_long", 80, 160, step=20)  # Range for volume_power_long
+    volume_power_short = trial.suggest_int("volume_power_short", 80, 120, step=20)  # Range for volume_power_short # DONCHIAN
+    volume_power_long = trial.suggest_int("volume_power_long", 80, 120, step=20)  # Range for volume_power_long
     long_diff = trial.suggest_int("long_diff", 0, 64, step=8)
     reset_window = trial.suggest_int("reset_window", 2, 20, step=2)
     confirm_days = trial.suggest_int("confirm_days", 2, 4, step=1)
@@ -127,7 +127,7 @@ def objective(trial):
         reset_window=reset_window,
         confirm_days=confirm_days,
         sides=sides,
-        next_day_execution=False,
+        next_day_execution=True,
     )
 
     # Calculate the loss
@@ -161,7 +161,7 @@ if __name__ == "__main__":
         reset_window=best_params["reset_window"],
         confirm_days=best_params["confirm_days"],
         sides=sides,
-        next_day_execution=False,
+        next_day_execution=True,
 
     )
 
