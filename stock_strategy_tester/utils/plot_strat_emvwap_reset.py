@@ -165,7 +165,7 @@ if __name__ == "__main__":
     # Load sample data
     # ticker = "META"
     # ticker = "TSLA"
-    # ticker = "MSFT"
+    ticker = "MSFT"
     # ticker = "F"
     # ticker = "SHOP"
     # ticker = "SQ" # XYZ
@@ -174,7 +174,7 @@ if __name__ == "__main__":
     # ticker = "SPMO"
     # ticker = "spy"
     # ticker = "U"
-    ticker = "JPM"
+    # ticker = "JPM"
     # ticker = "AMD"
     # ticker = "nvda"
     # ticker = "AXP"
@@ -208,7 +208,7 @@ if __name__ == "__main__":
     # params = {'short_window': 40, 'long_window': 192, 'volume_power_short': 70, 'volume_power_long': 150, 'long_diff': 56}
     # params =     {'short_window': 19, 'long_window': 256, 'volume_power_short': 180, 'volume_power_long': 80, 'long_diff': 56, 'reset_window': 2, 'confirm_days': 3}# 5D spy
     # params = {'short_window': 5, 'long_window': 160, 'volume_power_short': 130, 'volume_power_long': 110, 'long_diff': 48, 'reset_window': 10, 'confirm_days': 5} # 5D spy
-    params =  {'short_window': 33, 'long_window': 192, 'volume_power_short': 80, 'volume_power_long': 140, 'long_diff': 32, 'reset_window': 4, 'confirm_days': 2}
+    params =  {'short_window': 5, 'long_window': 256, 'volume_power_short': 160, 'volume_power_long': 120, 'long_diff': 40, 'reset_window': 8, 'confirm_days': 3}
 
 
 
